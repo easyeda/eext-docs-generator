@@ -4,7 +4,7 @@
 	"displayName": "AI文档生成器",
 	"description": "通过 AI 分析原理图/PCB信息，并根据目录自动生成文档",
 	"version": "1.4.1",
-	"publisher": "",
+	"publisher": "JLCEDA",
 	"engines": {
 		"eda": "^3.0.0"
 	},
