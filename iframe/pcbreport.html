@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+	<title>PCB 设计报告</title>
+	<meta charset="utf-8" />
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1e1e2e; color: #cdd6f4; height: 100vh; display: flex; flex-direction: column; }
+		.toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #181825; border-bottom: 1px solid #313244; flex-shrink: 0; flex-wrap: wrap; }
+		.toolbar button { padding: 5px 12px; border: 1px solid #45475a; border-radius: 5px; background: #313244; color: #cdd6f4; cursor: pointer; font-size: 12px; }
+		.toolbar button:hover { background: #45475a; }
+		.toolbar button.primary { background: #89b4fa; color: #1e1e2e; border-color: #89b4fa; font-weight: 600; }
+		.toolbar button.active { background: #f9e2af; color: #1e1e2e; border-color: #f9e2af; }
+		.toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+		.toolbar .sep { width: 1px; height: 20px; background: #45475a; margin: 0 4px; }
+		.toolbar .spacer { flex: 1; }
+		.toolbar .status { font-size: 11px; color: #a6adc8; }
+		.content { flex: 1; overflow: hidden; display: flex; }
+		.preview-panel { flex: 1; overflow-y: auto; padding: 20px; background: #1e1e2e; }
+		.preview-panel.hidden { display: none; }
+		.md-panel { flex: 1; display: flex; flex-direction: column; }
+		.md-panel.hidden { display: none; }
+		.md-editor { flex: 1; background: #11111b; color: #cdd6f4; border: none; padding: 16px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 13px; line-height: 1.6; resize: none; outline: none; }
+		.a4-page { width: 210mm; min-height: 297mm; background: #fff; color: #333; margin: 0 auto 20px; padding: 20mm 15mm 25mm 15mm; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-radius: 2px; font-size: 11px; line-height: 1.6; position: relative; page-break-after: always; overflow: hidden; }
+		.a4-page h1 { font-size: 22px; color: #1a1a2e; margin-bottom: 6px; border-bottom: 2px solid #2563eb; padding-bottom: 6px; }
+		.a4-page h2 { font-size: 15px; color: #2d2d44; margin: 16px 0 8px; border-left: 4px solid #2563eb; padding-left: 10px; }
+		.a4-page h3 { font-size: 12px; color: #444; margin: 10px 0 5px; }
+		.a4-page p { margin: 5px 0; } .a4-page ul,.a4-page ol { margin: 5px 0 5px 18px; } .a4-page li { margin: 2px 0; }
+		.a4-page table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9px; table-layout: fixed; word-wrap: break-word; overflow-wrap: break-word; }
+		.a4-page th { background: #f0f4ff; padding: 4px 3px; text-align: left; border: 1px solid #ddd; font-weight: 600; font-size: 8px; }
+		.a4-page td { padding: 3px; border: 1px solid #ddd; word-break: break-all; }
+		.a4-page tr:nth-child(even) { background: #fafbff; }
+		.a4-page .meta { color: #888; font-size: 10px; margin-bottom: 12px; }
+		.a4-page .page-num { position: absolute; bottom: 10mm; right: 15mm; font-size: 10px; color: #aaa; }
+		.summary-cards { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+		.card { flex: 1; min-width: 100px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center; }
+		.card .num { font-size: 18px; font-weight: 700; color: #2563eb; } .card .label { font-size: 9px; color: #64748b; margin-top: 3px; }
+		.drc-pass { color: #16a34a; font-weight: 700; } .drc-fail { color: #dc2626; font-weight: 700; }
+		.placeholder { color: #999; font-style: italic; }
+		.pcb-image { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; margin: 8px 0; }
+		.toc-item { display: flex; align-items: baseline; margin: 5px 0; font-size: 12px; gap: 6px; }
+		.toc-title { flex: 1; } .toc-dots { flex: 1; border-bottom: 1px dotted #999; margin: 0 4px; min-width: 20px; } .toc-page { color: #666; width: 24px; text-align: right; }
+		.toc-h2 { font-weight: 600; margin-top: 8px; } .toc-h3 { padding-left: 18px; font-size: 11px; color: #555; }
+		/* Editable TOC */
+		.toc-edit { list-style: none; padding: 0; }
+		.toc-edit li { display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin: 3px 0; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; cursor: grab; }
+		.toc-edit li:hover { background: #eff6ff; border-color: #93c5fd; }
+		.toc-edit .toc-num { color: #94a3b8; font-size: 11px; min-width: 20px; }
+		.toc-edit input { flex: 1; border: none; background: transparent; font-size: 13px; color: #333; outline: none; }
+		.toc-edit .toc-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; padding: 0 4px; }
+		.toc-edit .toc-del:hover { color: #dc2626; }
+		.toc-add { display: inline-block; margin-top: 8px; padding: 4px 12px; background: #eff6ff; border: 1px dashed #93c5fd; border-radius: 4px; color: #2563eb; cursor: pointer; font-size: 12px; }
+		.toc-add:hover { background: #dbeafe; }
+		.loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30,30,46,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+		.loading-overlay.hidden { display: none; }
+		.spinner { width: 40px; height: 40px; border: 3px solid #313244; border-top-color: #89b4fa; border-radius: 50%; animation: spin 0.8s linear infinite; }
+		@keyframes spin { to { transform: rotate(360deg); } }
+		.loading-text { margin-top: 16px; font-size: 14px; color: #a6adc8; }
+		@media print { body{background:#fff;} .toolbar,.loading-overlay,.md-panel{display:none!important;} .content{padding:0;overflow:visible;} .preview-panel{padding:0;} .a4-page{box-shadow:none;margin:0;border-radius:0;width:100%;min-height:auto;page-break-after:always;} }
+	</style>
+</head>
+<body>
+	<div class="toolbar">
+		<button class="primary" id="btnAI" onclick="generateByTOC()">🤖 AI 按目录生成</button>
+		<div class="sep"></div>
+		<button id="btnPreview" class="active" onclick="switchMode('preview')">预览</button>
+		<button id="btnSource" onclick="switchMode('source')">源码</button>
+		<div class="sep"></div>
+		<button id="btnExportPdf" onclick="exportPdf()" disabled>PDF</button>
+		<button id="btnExportHtml" onclick="exportHtml()" disabled>HTML</button>
+		<div class="spacer"></div>
+		<span class="status" id="statusText">就绪</span>
+	</div>
+	<div class="content">
+		<div class="preview-panel" id="previewPanel">
+			<div id="contentArea"><div class="a4-page"><p style="color:#888;text-align:center;padding:80px 0;">加载中...</p></div></div>
+		</div>
+		<div class="md-panel hidden" id="mdPanel">
+			<textarea class="md-editor" id="mdEditor" spellcheck="false"></textarea>
+		</div>
+	</div>
+	<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div class="loading-text" id="loadingText">处理中...</div></div>
+
+	<script>
+		var pcbData = null, ppRows = [], currentMode = 'preview';
+
+		function getDefaultTOC() {
+			return [
+				{ title: 'PCB 概览', type: 'overview', prompt: '' },
+				{ title: 'DRC 检查与设计规则', type: 'drc', prompt: '' },
+				{ title: '走线布局分析', type: 'routing', prompt: '' },
+				{ title: '元件放置分析', type: 'ai', prompt: '分析元件布局密度、正反面分布、关键器件放置合理性、散热考虑、高速信号器件布局。用表格展示关键分析结果。' },
+				{ title: '综合评估', type: 'ai', prompt: '生成综合评估：设计要点总结、生产注意事项、潜在风险（表格：风险项|严重程度|建议措施）、可制造性评估。' }
+			];
+		}
+
+		function init() {
+			try {
+				var raw = eda.sys_Storage.getExtensionUserConfig('prodoc_pcbreport');
+				if (!raw) {
+					document.getElementById('contentArea').innerHTML = '<div class="a4-page"><p style="color:#f38ba8;text-align:center;padding:80px 0;">未找到 PCB 报告数据。<br>请在 PCB 编辑器中重新运行「PCB 设计报告」。<br><br><small>可能原因：数据过大无法存储，或未在 PCB 编辑器中运行。</small></p></div>';
+					return;
+				}
+				console.log('[Docs-Generator] PCB data loaded, size:', raw.length);
+				pcbData = JSON.parse(raw);
+				ppRows = parsePP(pcbData.pickPlaceCsv);
+				renderTemplate();
+			} catch(e) {
+				console.error('[Docs-Generator] init error:', e);
+				document.getElementById('contentArea').innerHTML = '<div class="a4-page"><p style="color:#f38ba8;text-align:center;padding:80px 0;">数据加载失败: ' + String(e.message||e) + '</p></div>';
+			}
+		}
+
+		function parsePP(csv) {
+			if (!csv) return [];
+			var lines = csv.split('\n').filter(function(l){ return l.trim(); });
+			if (lines.length < 2) return [];
+			var hdr = lines[0].split('\t');
+			var rows = [];
+			for (var i = 1; i < lines.length; i++) {
+				var cols = lines[i].split('\t');
+				var row = {};
+				for (var j = 0; j < hdr.length; j++) row[hdr[j].trim()] = (cols[j]||'').trim();
+				rows.push(row);
+			}
+			return rows;
+		}
+
+		function renderTemplate() {
+			if (!pcbData) return;
+			var projName = pcbData.projectName || '未命名工程';
+			var boardLabel = pcbData.boardName || '';
+			var layers = pcbData.layers || [];
+			var compCount = pcbData.componentCount || 0;
+			var netNames = pcbData.netNames || [];
+			var pn = 1, html = '';
+
+			// Cover
+			var cv = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:247mm;text-align:center;">';
+			cv += '<h1 style="font-size:26px;border:none;margin-bottom:8px;">' + esc(projName) + '</h1>';
+			if (boardLabel) cv += '<p style="font-size:16px;color:#444;margin-bottom:10px;">' + esc(boardLabel) + '</p>';
+			cv += '<p style="font-size:16px;color:#555;margin-bottom:8px;">PCB 设计报告</p>';
+			cv += '<p class="meta" style="margin-top:20px;">元件数: ' + compCount + ' | 网络数: ' + netNames.length + ' | 层数: ' + layers.length + '</p>';
+			cv += '<p class="meta">' + new Date(pcbData.timestamp).toLocaleString() + '</p></div>';
+			html += pg(cv, pn++);
+
+			// Editable TOC page
+			var tocHtml = '<h2>目录 <small style="font-size:11px;color:#888;font-weight:normal;">(编辑后点击「AI 按目录生成」)</small></h2>';
+			tocHtml += '<ul class="toc-edit" id="tocEdit">';
+			var defaultToc = getDefaultTOC();
+			for (var i = 0; i < defaultToc.length; i++) {
+				tocHtml += tocLi(i, defaultToc[i]);
+			}
+			tocHtml += '</ul>';
+			tocHtml += '<span class="toc-add" onclick="addChapter()">+ 添加章节</span>';
+			html += pg(tocHtml, pn++);
+
+			document.getElementById('contentArea').innerHTML = html;
+			document.getElementById('btnExportPdf').disabled = false;
+			document.getElementById('btnExportHtml').disabled = false;
+			setStatus('编辑目录后点击「AI 按目录生成」');
+		}
+
+		function tocLi(idx, item) {
+			var dataAttr = ' data-type="' + esc(item.type || 'ai') + '"';
+			if (item.prompt) dataAttr += ' data-prompt="' + esc(item.prompt) + '"';
+			return '<li draggable="true"' + dataAttr + '><span class="toc-num">' + (idx+1) + '</span><input value="' + esc(item.title) + '" /><button class="toc-del" onclick="delChapter(this)">×</button></li>';
+		}
+
+		function addChapter() {
+			var ul = document.getElementById('tocEdit');
+			if (!ul) return;
+			var idx = ul.children.length;
+			var li = document.createElement('div');
+			li.innerHTML = tocLi(idx, { title: '新章节', type: 'ai', prompt: '' });
+			ul.appendChild(li.firstChild);
+			renumberTOC();
+		}
+
+		function delChapter(btn) {
+			btn.parentElement.remove();
+			renumberTOC();
+		}
+
+		function renumberTOC() {
+			var ul = document.getElementById('tocEdit');
+			if (!ul) return;
+			var items = ul.querySelectorAll('li');
+			for (var i = 0; i < items.length; i++) {
+				items[i].querySelector('.toc-num').textContent = (i+1);
+			}
+		}
+
+		function readTOC() {
+			var ul = document.getElementById('tocEdit');
+			if (!ul) return [];
+			var items = ul.querySelectorAll('li');
+			var toc = [];
+			for (var i = 0; i < items.length; i++) {
+				var li = items[i];
+				toc.push({
+					title: li.querySelector('input').value,
+					type: li.getAttribute('data-type') || 'ai',
+					prompt: li.getAttribute('data-prompt') || ''
+				});
+			}
+			return toc;
+		}
+
+		// ===== Generate by TOC =====
+		async function generateByTOC() {
+			var toc = readTOC();
+			if (!toc.length) { eda.sys_Dialog.showInformationMessage('目录为空','Docs-Generator'); return; }
+			var cfg = getApiConfig();
+			var hasAI = false;
+			for (var i = 0; i < toc.length; i++) { if (toc[i].type === 'ai') { hasAI = true; break; } }
+			if (hasAI && !cfg.apiKey) { eda.sys_Dialog.showInformationMessage('请先配置 API（菜单 > Docs-Generator > 设置）','Docs-Generator'); return; }
+
+			var confirmed = await new Promise(function(resolve) {
+				eda.sys_Dialog.showConfirmationMessage(
+					'AI 生成的内容可能存在虚构或不准确之处，请在使用前仔细核实。\n是否继续生成？',
+					'AI 免责提示',
+					'继续生成',
+					'取消',
+					function(ok) { resolve(ok); }
+				);
+			});
+			if (!confirmed) return;
+
+			showLoading('生成中...'); document.getElementById('btnAI').disabled = true;
+			var projName = pcbData.projectName || '未命名工程';
+			var boardLabel = pcbData.boardName || '';
+			var layers = pcbData.layers || [];
+			var compCount = pcbData.componentCount || 0;
+			var netNames = pcbData.netNames || [];
+			var drcPassed = pcbData.drcPassed;
+			var drcErrors = pcbData.drcErrors || [];
+			var fullData = buildFullSummary();
+
+			var pn = 1, html = '';
+
+			// Cover
+			var cv = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:247mm;text-align:center;">';
+			cv += '<h1 style="font-size:26px;border:none;margin-bottom:8px;">' + esc(projName) + '</h1>';
+			if (boardLabel) cv += '<p style="font-size:16px;color:#444;margin-bottom:10px;">' + esc(boardLabel) + '</p>';
+			cv += '<p style="font-size:16px;color:#555;margin-bottom:8px;">PCB 设计报告</p>';
+			cv += '<p class="meta" style="margin-top:20px;">元件数: ' + compCount + ' | 网络数: ' + netNames.length + ' | 层数: ' + layers.length + '</p>';
+			cv += '<p class="meta">' + new Date(pcbData.timestamp).toLocaleString() + '</p></div>';
+			html += pg(cv, pn++);
+
+			// TOC page (will be filled after generation)
+			html += pg('<h2>目录</h2><div id="tocFinal"></div>', pn++);
+
+			// Generate each chapter
+			var hasErr = false;
+			for (var ci = 0; ci < toc.length; ci++) {
+				var ch = toc[ci];
+				setStatus('生成 ' + (ci+1) + '/' + toc.length + ': ' + ch.title);
+				document.getElementById('loadingText').textContent = ch.title;
+
+				if (ch.type === 'overview') {
+					html += renderOverview(ch.title, pn++);
+
+				} else if (ch.type === 'drc') {
+					html += renderDRC(ch.title, pn++);
+
+				} else if (ch.type === 'routing') {
+					html += renderRouting(ch.title, pn++);
+
+				} else {
+					// AI chapter
+					var pageHtml = '<h2>' + esc(ch.title) + '</h2>';
+					try {
+						var prompt = '【项目】' + esc(projName) + '\n\n请生成章节「' + ch.title + '」的内容。\n' + (ch.prompt||'') + '\n\n' + fullData + '\n\n用HTML标签输出（不要用代码块包裹）。用h3/p/ul/li/strong/table标签。专业严谨，基于实际数据。';
+						var result = await callLLM(cfg, prompt);
+						if (result) pageHtml += result;
+					} catch(e) {
+						pageHtml += '<div style="color:#c00;border:1px solid #c00;padding:6px;border-radius:4px;margin:6px 0;font-size:10px;">生成失败: ' + esc(String(e.message||e).substring(0,150)) + '</div>';
+						hasErr = true;
+					}
+					html += pg(pageHtml, pn++);
+				}
+			}
+
+			document.getElementById('contentArea').innerHTML = html;
+			extractAndRenderTOC();
+			document.getElementById('btnExportPdf').disabled = false;
+			document.getElementById('btnExportHtml').disabled = false;
+			hideLoading(); document.getElementById('btnAI').disabled = false;
+			setStatus(hasErr ? '部分生成失败' : '生成完成');
+		}
+
+		// ===== Render data-driven chapters =====
+		function renderOverview(title, pn) {
+			var layers = pcbData.layers || [];
+			var compCount = pcbData.componentCount || 0;
+			var netNames = pcbData.netNames || [];
+			var drcPassed = pcbData.drcPassed;
+			var h = '<h2>' + esc(title) + '</h2>';
+			h += '<div class="summary-cards">';
+			h += '<div class="card"><div class="num">' + layers.length + '</div><div class="label">使用层数</div></div>';
+			h += '<div class="card"><div class="num">' + compCount + '</div><div class="label">元件数</div></div>';
+			h += '<div class="card"><div class="num">' + netNames.length + '</div><div class="label">网络数</div></div>';
+			h += '<div class="card"><div class="num">' + (pcbData.traceCount||0) + '</div><div class="label">走线段数</div></div>';
+			h += '<div class="card"><div class="num">' + (pcbData.arcCount||0) + '</div><div class="label">弧线段数</div></div>';
+			h += '<div class="card"><div class="num">' + (pcbData.viaCount||0) + '</div><div class="label">过孔数</div></div>';
+			h += '<div class="card"><div class="num">' + (pcbData.padCount||0) + '</div><div class="label">焊盘数</div></div>';
+			h += '<div class="card"><div class="num">' + (pcbData.pourCount||0) + '</div><div class="label">铺铜区</div></div>';
+			h += '<div class="card"><div class="num">' + (drcPassed ? '<span class="drc-pass">通过</span>' : '<span class="drc-fail">失败</span>') + '</div><div class="label">DRC</div></div>';
+			h += '</div>';
+			// Layer stack table
+			if (layers.length > 0) {
+				h += '<h3>层叠信息</h3>';
+				h += '<table><thead><tr><th style="width:8%">序号</th><th style="width:35%">层名称</th><th style="width:30%">类型</th><th style="width:27%">可见</th></tr></thead><tbody>';
+				for (var i = 0; i < layers.length; i++) {
+					var l = layers[i];
+					h += '<tr><td>' + (i+1) + '</td><td>' + esc(l.name) + '</td><td>' + esc(l.type) + '</td><td>' + (l.visible ? '是' : '否') + '</td></tr>';
+				}
+				h += '</tbody></table>';
+			}
+			// PCB screenshot
+			if (pcbData.imageBase64) {
+				h += '<h3>PCB 板图</h3>';
+				h += '<img class="pcb-image" src="' + pcbData.imageBase64 + '" alt="PCB Screenshot" />';
+			}
+			return pg(h, pn);
+		}
+
+		function renderDRC(title, pn) {
+			var drcPassed = pcbData.drcPassed;
+			var drcErrors = pcbData.drcErrors || [];
+			var h = '<h2>' + esc(title) + '</h2>';
+			if (drcPassed) {
+				h += '<p class="drc-pass" style="font-size:14px;margin:16px 0;">✅ DRC 检查通过，未发现错误。</p>';
+			} else {
+				h += '<p class="drc-fail" style="font-size:14px;margin:16px 0;">❌ DRC 检查发现 ' + drcErrors.length + ' 个错误</p>';
+				if (drcErrors.length > 0) {
+					h += '<table><thead><tr><th style="width:8%">序号</th><th style="width:92%">错误详情</th></tr></thead><tbody>';
+					for (var i = 0; i < drcErrors.length; i++) {
+						var errStr = typeof drcErrors[i] === 'string' ? drcErrors[i] : JSON.stringify(drcErrors[i]);
+						h += '<tr><td>' + (i+1) + '</td><td>' + esc(errStr) + '</td></tr>';
+					}
+					h += '</tbody></table>';
+				}
+			}
+			if (pcbData.designRuleName) {
+				h += '<h3>设计规则配置: ' + esc(pcbData.designRuleName) + '</h3>';
+			}
+			// Net Classes
+			var ncs = pcbData.netClasses || [];
+			if (ncs.length > 0) {
+				h += '<h3>网络类 (' + ncs.length + ')</h3>';
+				h += '<table><thead><tr><th style="width:25%">名称</th><th style="width:75%">网络</th></tr></thead><tbody>';
+				for (var i = 0; i < ncs.length; i++) {
+					var nc = ncs[i];
+					h += '<tr><td><strong>' + esc(nc.name||nc.netClassName||'') + '</strong></td><td>' + esc((nc.nets||[]).join(', ')) + '</td></tr>';
+				}
+				h += '</tbody></table>';
+			}
+			// Differential Pairs
+			var dps = pcbData.diffPairs || [];
+			if (dps.length > 0) {
+				h += '<h3>差分对 (' + dps.length + ')</h3>';
+				h += '<table><thead><tr><th style="width:30%">名称</th><th style="width:35%">正网络</th><th style="width:35%">负网络</th></tr></thead><tbody>';
+				for (var i = 0; i < dps.length; i++) {
+					var dp = dps[i];
+					h += '<tr><td><strong>' + esc(dp.name||dp.differentialPairName||'') + '</strong></td><td>' + esc(dp.positiveNet||'') + '</td><td>' + esc(dp.negativeNet||'') + '</td></tr>';
+				}
+				h += '</tbody></table>';
+			}
+			// Equal Length Groups
+			var elgs = pcbData.equalLengthGroups || [];
+			if (elgs.length > 0) {
+				h += '<h3>等长网络组 (' + elgs.length + ')</h3>';
+				h += '<table><thead><tr><th style="width:25%">名称</th><th style="width:75%">网络</th></tr></thead><tbody>';
+				for (var i = 0; i < elgs.length; i++) {
+					var el = elgs[i];
+					h += '<tr><td><strong>' + esc(el.name||el.equalLengthNetGroupName||'') + '</strong></td><td>' + esc((el.nets||[]).join(', ')) + '</td></tr>';
+				}
+				h += '</tbody></table>';
+			}
+			return pg(h, pn);
+		}
+
+		function renderRouting(title, pn) {
+			var h = '<h2>' + esc(title) + '</h2>';
+			// Primitive statistics
+			h += '<h3>图元统计</h3>';
+			h += '<table><thead><tr><th style="width:40%">图元类型</th><th style="width:30%">数量</th><th style="width:30%">说明</th></tr></thead><tbody>';
+			h += '<tr><td>走线 (Track)</td><td>' + (pcbData.traceCount||0) + '</td><td>直线走线段</td></tr>';
+			h += '<tr><td>弧线 (Arc)</td><td>' + (pcbData.arcCount||0) + '</td><td>弧形走线段</td></tr>';
+			h += '<tr><td>折线 (Polyline)</td><td>' + (pcbData.polylineCount||0) + '</td><td>多段折线</td></tr>';
+			h += '<tr><td>过孔 (Via)</td><td>' + (pcbData.viaCount||0) + '</td><td>层间过孔</td></tr>';
+			h += '<tr><td>焊盘 (Pad)</td><td>' + (pcbData.padCount||0) + '</td><td>独立焊盘</td></tr>';
+			h += '<tr><td>铺铜 (Pour)</td><td>' + (pcbData.pourCount||0) + '</td><td>铜箔覆盖区</td></tr>';
+			h += '<tr><td>填充 (Fill)</td><td>' + (pcbData.fillCount||0) + '</td><td>实心填充区</td></tr>';
+			h += '<tr><td>区域 (Region)</td><td>' + (pcbData.regionCount||0) + '</td><td>规则区域</td></tr>';
+			h += '<tr><td>标注 (Dimension)</td><td>' + (pcbData.dimensionCount||0) + '</td><td>尺寸标注</td></tr>';
+			h += '<tr><td>文字 (String)</td><td>' + (pcbData.stringCount||0) + '</td><td>丝印文字</td></tr>';
+			h += '</tbody></table>';
+			// Traces per layer
+			var tpl = pcbData.tracesPerLayer || {};
+			if (Object.keys(tpl).length > 0) {
+				h += '<h3>各层走线统计</h3>';
+				h += '<table><thead><tr><th style="width:40%">层</th><th style="width:30%">走线段数</th><th style="width:30%">占比</th></tr></thead><tbody>';
+				var totalT = pcbData.traceCount || 1;
+				for (var lk in tpl) {
+					var pct = (tpl[lk] / totalT * 100).toFixed(1);
+					h += '<tr><td>' + esc(lk) + '</td><td>' + tpl[lk] + '</td><td>' + pct + '%</td></tr>';
+				}
+				h += '</tbody></table>';
+			}
+			// Net lengths
+			var nls = pcbData.netLengths || [];
+			if (nls.length > 0) {
+				h += '<h3>关键网络长度 (Top ' + nls.length + ')</h3>';
+				h += '<table><thead><tr><th style="width:50%">网络名称</th><th style="width:25%">长度 (mil)</th><th style="width:25%">长度 (mm)</th></tr></thead><tbody>';
+				for (var i = 0; i < nls.length; i++) {
+					var nl = nls[i];
+					h += '<tr><td>' + esc(nl.name) + '</td><td>' + nl.length.toFixed(1) + '</td><td>' + (nl.length * 0.0254).toFixed(2) + '</td></tr>';
+				}
+				h += '</tbody></table>';
+			}
+			// Board dimensions
+			var bbox = pcbData.boardBBox;
+			if (bbox) {
+				var bw = Math.abs(bbox.maxX - bbox.minX);
+				var bh = Math.abs(bbox.maxY - bbox.minY);
+				h += '<h3>板框尺寸</h3>';
+				h += '<p>宽度: ' + bw.toFixed(1) + ' mil (' + (bw*0.0254).toFixed(2) + ' mm) | 高度: ' + bh.toFixed(1) + ' mil (' + (bh*0.0254).toFixed(2) + ' mm)</p>';
+				h += '<p>面积: ' + (bw*bh*0.0254*0.0254/100).toFixed(2) + ' cm²</p>';
+			}
+			// Component density
+			var compCount = pcbData.componentCount || 0;
+			if (compCount > 0 && bbox) {
+				var area = Math.abs(bbox.maxX - bbox.minX) * Math.abs(bbox.maxY - bbox.minY) * 0.0254 * 0.0254 / 100;
+				if (area > 0) {
+					h += '<h3>布局密度</h3>';
+					h += '<p>元件密度: ' + (compCount / area).toFixed(1) + ' 个/cm²</p>';
+					h += '<p>过孔密度: ' + ((pcbData.viaCount||0) / area).toFixed(1) + ' 个/cm²</p>';
+				}
+			}
+			return pg(h, pn);
+		}
+
+		function buildFullSummary() {
+			var s = '=== PCB 设计数据完整报告 ===\n\n';
+			s += '【基本信息】\n';
+			s += '项目: ' + (pcbData.projectName||'未知') + '\n';
+			s += '板名: ' + (pcbData.boardName||'未知') + '\n';
+			if (pcbData.boardBBox) {
+				var bb = pcbData.boardBBox;
+				var bw = Math.abs(bb.maxX-bb.minX), bh = Math.abs(bb.maxY-bb.minY);
+				s += '板框尺寸: ' + (bw*0.0254).toFixed(2) + 'mm x ' + (bh*0.0254).toFixed(2) + 'mm (面积:' + (bw*bh*0.0254*0.0254/100).toFixed(2) + 'cm²)\n';
+			}
+			s += '\n';
+			// Layer stack
+			s += '【层叠信息】\n';
+			var layers = pcbData.layers||[];
+			var tpl = pcbData.tracesPerLayer||{};
+			for (var i = 0; i < layers.length; i++) {
+				var l = layers[i];
+				var tc = tpl[l.name]||0;
+				s += '  ' + l.name + ' (' + l.type + ')' + (tc ? ' - ' + tc + '段走线' : '') + '\n';
+			}
+			s += '\n';
+			// Primitive statistics
+			s += '【图元统计】\n';
+			s += '  走线(Track): ' + (pcbData.traceCount||0) + '\n';
+			s += '  弧线(Arc): ' + (pcbData.arcCount||0) + '\n';
+			s += '  折线(Polyline): ' + (pcbData.polylineCount||0) + '\n';
+			s += '  过孔(Via): ' + (pcbData.viaCount||0) + '\n';
+			s += '  焊盘(Pad): ' + (pcbData.padCount||0) + '\n';
+			s += '  铺铜(Pour): ' + (pcbData.pourCount||0) + '\n';
+			s += '  填充(Fill): ' + (pcbData.fillCount||0) + '\n';
+			s += '  区域(Region): ' + (pcbData.regionCount||0) + '\n';
+			s += '  标注(Dimension): ' + (pcbData.dimensionCount||0) + '\n';
+			s += '  文字(String): ' + (pcbData.stringCount||0) + '\n';
+			s += '  元件(Component): ' + pcbData.componentCount + '\n';
+			s += '  网络总数: ' + (pcbData.netNames||[]).length + '\n';
+			if (pcbData.boardBBox) {
+				var bb2 = pcbData.boardBBox;
+				var area = Math.abs(bb2.maxX-bb2.minX)*Math.abs(bb2.maxY-bb2.minY)*0.0254*0.0254/100;
+				if (area > 0) {
+					s += '  元件密度: ' + (pcbData.componentCount/area).toFixed(1) + ' 个/cm²\n';
+					s += '  过孔密度: ' + ((pcbData.viaCount||0)/area).toFixed(1) + ' 个/cm²\n';
+				}
+			}
+			s += '\n';
+			// Traces per layer
+			if (Object.keys(tpl).length > 0) {
+				s += '【各层走线分布】\n';
+				var totalT = pcbData.traceCount||1;
+				for (var lk in tpl) { s += '  ' + lk + ': ' + tpl[lk] + '段 (' + (tpl[lk]/totalT*100).toFixed(1) + '%)\n'; }
+				s += '\n';
+			}
+			// Net lengths
+			var nls = pcbData.netLengths||[];
+			if (nls.length > 0) {
+				s += '【关键网络长度 (最长' + nls.length + '条)】\n';
+				for (var i = 0; i < nls.length; i++) { s += '  ' + nls[i].name + ': ' + (nls[i].length*0.0254).toFixed(2) + 'mm (' + nls[i].length.toFixed(1) + ' mil)\n'; }
+				s += '\n';
+			}
+			// DRC
+			s += '【DRC 检查】\n';
+			s += '  状态: ' + (pcbData.drcPassed?'通过':'失败') + '\n';
+			s += '  设计规则: ' + (pcbData.designRuleName||'默认') + '\n';
+			var errs = pcbData.drcErrors||[];
+			if (errs.length > 0) {
+				s += '  错误数: ' + errs.length + '\n';
+				for (var i = 0; i < Math.min(20,errs.length); i++) {
+					var errStr = typeof errs[i]==='string' ? errs[i] : JSON.stringify(errs[i]);
+					s += '  [' + i + '] ' + errStr.substring(0,120) + '\n';
+				}
+			}
+			s += '\n';
+			// Net classes
+			var ncs = pcbData.netClasses||[];
+			if (ncs.length > 0) {
+				s += '【网络类 (' + ncs.length + ')】\n';
+				for (var i = 0; i < ncs.length; i++) {
+					var nc = ncs[i];
+					s += '  ' + (nc.name||nc.netClassName||'') + ': ' + (nc.nets||[]).join(', ') + '\n';
+				}
+				s += '\n';
+			}
+			// Differential pairs
+			var dps = pcbData.diffPairs||[];
+			if (dps.length > 0) {
+				s += '【差分对 (' + dps.length + ')】\n';
+				for (var i = 0; i < dps.length; i++) {
+					var dp = dps[i];
+					s += '  ' + (dp.name||dp.differentialPairName||'') + ': P=' + (dp.positiveNet||'') + ' N=' + (dp.negativeNet||'') + '\n';
+				}
+				s += '\n';
+			}
+			// Equal length groups
+			var elgs = pcbData.equalLengthGroups||[];
+			if (elgs.length > 0) {
+				s += '【等长网络组 (' + elgs.length + ')】\n';
+				for (var i = 0; i < elgs.length; i++) {
+					var el = elgs[i];
+					s += '  ' + (el.name||el.equalLengthNetGroupName||'') + ': ' + (el.nets||[]).join(', ') + '\n';
+				}
+				s += '\n';
+			}
+			// Pad pair groups
+			var ppgs = pcbData.padPairGroups||[];
+			if (ppgs.length > 0) {
+				s += '【焊盘对组 (' + ppgs.length + ')】\n';
+				for (var i = 0; i < ppgs.length; i++) { s += '  ' + (ppgs[i].name||ppgs[i].padPairGroupName||'') + '\n'; }
+				s += '\n';
+			}
+			// Component placement
+			if (ppRows.length > 0) {
+				s += '【元件放置 (共' + ppRows.length + '个, 显示前30)】\n';
+				for (var i = 0; i < Math.min(30,ppRows.length); i++) {
+					var r = ppRows[i];
+					s += '  ' + (r['Designator']||'') + ': ' + (r['Comment']||'') + ' @ ' + (r['Layer']||'') + ' (' + (r['Footprint']||'') + ') X:' + (r['Center-X']||r['Center-X(mm)']||'') + ' Y:' + (r['Center-Y']||r['Center-Y(mm)']||'') + ' R:' + (r['Rotation']||'0') + '\n';
+				}
+				if (ppRows.length > 30) s += '  ...及其他' + (ppRows.length-30) + '个元件\n';
+				s += '\n';
+			}
+			// PCB info file
+			if (pcbData.pcbInfoText) {
+				s += '【PCB 信息文件】\n' + pcbData.pcbInfoText.substring(0,500) + '\n\n';
+			}
+			return s;
+		}
+
+		function extractAndRenderTOC() {
+			var tc = document.getElementById('tocFinal'); if (!tc) return;
+			var pages = document.querySelectorAll('.a4-page');
+			var h = '';
+			for (var i = 0; i < pages.length; i++) {
+				if (pages[i].querySelector('#tocFinal') || pages[i].querySelector('#tocEdit')) continue;
+				var hs = pages[i].querySelectorAll('h2, h3');
+				for (var hi = 0; hi < hs.length; hi++) {
+					var t = hs[hi].textContent.trim(); if (!t) continue;
+					var cls = hs[hi].tagName === 'H2' ? 'toc-item toc-h2' : 'toc-item toc-h3';
+					h += '<div class="' + cls + '"><span class="toc-title">' + esc(t) + '</span><span class="toc-dots"></span><span class="toc-page">' + (i+1) + '</span></div>';
+				}
+			}
+			tc.innerHTML = h;
+		}
+
+		// ===== Shared utilities =====
+		function pg(c, n) { return '<div class="a4-page" contenteditable="true">' + c + '<span class="page-num">' + n + '</span></div>'; }
+		function esc(s) { if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+		function formatHtml(html) {
+			var formatted = '';
+			var indent = 0;
+			html = html.replace(/>\s*</g, '>\n<');
+			var lines = html.split('\n');
+			for (var i = 0; i < lines.length; i++) {
+				var line = lines[i].trim();
+				if (!line) continue;
+				if (line.match(/^<\/(div|h[1-6]|p|ul|ol|li|table|thead|tbody|tr|th|td|section)/i)) indent = Math.max(0, indent - 1);
+				formatted += '  '.repeat(indent) + line + '\n';
+				if (line.match(/^<(div|h[1-6]|p|ul|ol|li|table|thead|tbody|tr|th|td|section)[^\/]*>$/i) && !line.match(/<\/[^>]+>$/)) indent++;
+			}
+			return formatted;
+		}
+
+		function switchMode(mode) {
+			if (mode === currentMode) return;
+			if (mode === 'source') {
+				document.getElementById('mdEditor').value = formatHtml(document.getElementById('contentArea').innerHTML);
+				document.getElementById('previewPanel').classList.add('hidden');
+				document.getElementById('mdPanel').classList.remove('hidden');
+				document.getElementById('btnSource').classList.add('active');
+				document.getElementById('btnPreview').classList.remove('active');
+			} else {
+				document.getElementById('contentArea').innerHTML = document.getElementById('mdEditor').value;
+				document.getElementById('mdPanel').classList.add('hidden');
+				document.getElementById('previewPanel').classList.remove('hidden');
+				document.getElementById('btnPreview').classList.add('active');
+				document.getElementById('btnSource').classList.remove('active');
+			}
+			currentMode = mode;
+		}
+
+		// ===== API =====
+		function getApiConfig() {
+			try { var raw = eda.sys_Storage.getExtensionUserConfig('prodoc_api_config'); if (raw) { var c=JSON.parse(raw); return {format:c.format||'openai',baseUrl:c.baseUrl||'',apiKey:c.apiKey||'',model:c.model||'',temperature:c.temperature!=null?c.temperature:1.0,retryUntilSuccess:!!c.retryUntilSuccess}; } } catch(e){}
+			return {format:'openai',baseUrl:'',apiKey:'',model:'',temperature:1.0,retryUntilSuccess:false};
+		}
+		function isRetryable(e){var m=String(e.message||'');return m.indexOf('429')!==-1||m.indexOf('529')!==-1||m.indexOf('overloaded')!==-1||m.indexOf('503')!==-1||m.indexOf('502')!==-1;}
+		async function callLLM(cfg,prompt){var att=0;var max=cfg.retryUntilSuccess?999:2;while(true){att++;try{var r=cfg.format==='anthropic'?await fetchAnthropic(cfg,prompt):await fetchOpenAI(cfg,prompt);if(r)return r;}catch(e){if(isRetryable(e)&&att<max){setStatus('过载重试...');await sleep(Math.min(5+att*2,30)*1000);continue;}if(att<max){await sleep(2000);continue;}throw e;}}}
+		async function fetchOpenAI(cfg,prompt){var url=cfg.baseUrl.replace(/\/$/,'')+'/chat/completions';var body={model:cfg.model,messages:[{role:'system',content:'你是PCB设计分析专家，用中文回答。'},{role:'user',content:prompt}],temperature:cfg.temperature,stream:false};var resp=await eda.sys_ClientUrl.request(url,'POST',JSON.stringify(body),{headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey}});var t=await resp.text();if(!resp.ok)throw new Error('HTTP '+resp.status+': '+t.substring(0,200));var d=JSON.parse(t);if(d.choices&&d.choices[0]&&d.choices[0].message){var c=d.choices[0].message.content||'';c=c.replace(/<think>[\s\S]*?<\/think>/g,'');c=c.replace(/^```html\s*/i,'').replace(/\s*```$/i,'');return c.trim();}return null;}
+		async function fetchAnthropic(cfg,prompt){var url=cfg.baseUrl.replace(/\/$/,'')+'/messages';var body={model:cfg.model,max_tokens:4096,system:'你是PCB设计分析专家，用中文回答。',messages:[{role:'user',content:[{type:'text',text:prompt}]}],temperature:cfg.temperature,stream:false};var resp=await eda.sys_ClientUrl.request(url,'POST',JSON.stringify(body),{headers:{'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01'}});var t=await resp.text();if(!resp.ok)throw new Error('HTTP '+resp.status+': '+t.substring(0,200));var d=JSON.parse(t);if(d.content&&Array.isArray(d.content)){var c='';for(var bi=0;bi<d.content.length;bi++)if(d.content[bi].type==='text')c+=d.content[bi].text;c=c.replace(/^```html\s*/i,'').replace(/\s*```$/i,'');return c.trim();}return null;}
+		function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+		// ===== Export =====
+		function exportPdf(){
+			if (eda.sys_Environment.isClient()) {
+				eda.sys_Dialog.showInformationMessage('客户端环境暂不支持直接导出 PDF。\n请先导出 HTML，然后在浏览器中打开 HTML 文件并使用浏览器的打印功能保存为 PDF。', 'Docs-Generator');
+				return;
+			}
+			var ca=document.getElementById('contentArea');var pw=window.open('','_blank');
+			if(!pw)return;
+			pw.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>PCB 设计报告</title><style>');
+			pw.document.write('@page{size:A4;margin:20mm 15mm 25mm 15mm;}body{font-family:sans-serif;color:#333;font-size:11px;line-height:1.6;margin:0;padding:0;}');
+			pw.document.write('.a4-page{page-break-after:always;padding:0;min-height:auto;width:auto;box-shadow:none;}h1{font-size:22px;border-bottom:2px solid #2563eb;padding-bottom:6px;}h2{font-size:15px;margin:16px 0 8px;border-left:4px solid #2563eb;padding-left:10px;}h3{font-size:12px;margin:10px 0 5px;}');
+			pw.document.write('table{width:100%;border-collapse:collapse;margin:8px 0;font-size:9px;table-layout:fixed;}th{background:#f0f4ff;padding:4px 3px;border:1px solid #ddd;font-weight:600;font-size:8px;}td{padding:3px;border:1px solid #ddd;word-break:break-all;}tr:nth-child(even){background:#fafbff;}');
+			pw.document.write('.summary-cards{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}.card{flex:1;min-width:100px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center;}.card .num{font-size:18px;font-weight:700;color:#2563eb;}.card .label{font-size:9px;color:#64748b;}');
+			pw.document.write('.drc-pass{color:#16a34a;font-weight:700;}.drc-fail{color:#dc2626;font-weight:700;}');
+			pw.document.write('.meta{color:#888;font-size:10px;}.page-num{text-align:right;font-size:10px;color:#aaa;}.placeholder{color:#999;font-style:italic;}');
+			pw.document.write('.pcb-image{max-width:100%;border:1px solid #ddd;border-radius:4px;margin:8px 0;}');
+			pw.document.write('.toc-item{display:flex;align-items:baseline;margin:5px 0;font-size:12px;}.toc-title{flex-shrink:0;}.toc-dots{flex:1;border-bottom:1px dotted #999;margin:0 6px;}.toc-page{flex-shrink:0;color:#666;}.toc-h2{font-weight:600;margin-top:8px;}.toc-h3{padding-left:18px;font-size:11px;color:#555;}');
+			pw.document.write('.toc-edit,.toc-add{display:none;}');
+			pw.document.write('</style></head><body>'+ca.innerHTML+'</body></html>');
+			pw.document.close();eda.sys_Dialog.showInformationMessage('已在新窗口打开打印预览，请在新窗口完成打印/保存 PDF 操作后返回。', 'Docs-Generator');setTimeout(function(){pw.print();},600);
+		}
+		function exportHtml(){
+			var ca=document.getElementById('contentArea');
+			var h='<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="utf-8"><title>PCB 设计报告</title><style>';
+			h+='@page{size:A4;margin:20mm 15mm 25mm 15mm;}body{font-family:sans-serif;color:#333;font-size:11px;line-height:1.6;margin:0;padding:20mm 15mm;}';
+			h+='.a4-page{width:210mm;min-height:297mm;background:#fff;padding:20mm 18mm 25mm 18mm;margin:0 auto 20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);position:relative;}';
+			h+='.a4-page{page-break-after:always;margin-bottom:30px;}h1{font-size:22px;border-bottom:2px solid #2563eb;padding-bottom:6px;}h2{font-size:15px;margin:16px 0 8px;border-left:4px solid #2563eb;padding-left:10px;}h3{font-size:12px;margin:10px 0 5px;}';
+			h+='table{width:100%;border-collapse:collapse;margin:8px 0;font-size:9px;table-layout:fixed;word-wrap:break-word;}th{background:#f0f4ff;padding:4px 3px;border:1px solid #ddd;font-weight:600;font-size:8px;}td{padding:3px;border:1px solid #ddd;word-break:break-all;}tr:nth-child(even){background:#fafbff;}';
+			h+='.summary-cards{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}.card{flex:1;min-width:100px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center;}.card .num{font-size:18px;font-weight:700;color:#2563eb;}.card .label{font-size:9px;color:#64748b;}';
+			h+='.drc-pass{color:#16a34a;font-weight:700;}.drc-fail{color:#dc2626;font-weight:700;}';
+			h+='.meta{color:#888;font-size:10px;}.page-num{text-align:right;font-size:10px;color:#aaa;}.placeholder{color:#999;font-style:italic;}';
+			h+='.pcb-image{max-width:100%;border:1px solid #ddd;border-radius:4px;margin:8px 0;}';
+			h+='.toc-item{display:flex;align-items:baseline;margin:5px 0;font-size:12px;}.toc-title{flex-shrink:0;}.toc-dots{flex:1;border-bottom:1px dotted #999;margin:0 6px;}.toc-page{flex-shrink:0;color:#666;}.toc-h2{font-weight:600;margin-top:8px;}.toc-h3{padding-left:18px;font-size:11px;color:#555;}';
+			h+='.toc-edit,.toc-add{display:none;}';
+			h+='</style></head><body>'+ca.innerHTML+'</body></html>';
+			eda.sys_FileSystem.saveFile(new Blob([h],{type:'text/html;charset=utf-8'}),'PCB_Design_Report.html');
+		}
+
+		function showLoading(t){document.getElementById('loadingText').textContent=t;document.getElementById('loadingOverlay').classList.remove('hidden');}
+		function hideLoading(){document.getElementById('loadingOverlay').classList.add('hidden');}
+		function setStatus(t){document.getElementById('statusText').textContent=t;}
+
+		init();
+	</script>
+</body>
+</html>

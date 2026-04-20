@@ -1,0 +1,87 @@
+{
+	"name": "eext-docs-generator",
+	"uuid": "e298778adb35432cb579bb9a8bc22f37",
+	"displayName": "AI文档生成器",
+	"description": "通过 AI 分析原理图/PCB信息，并根据目录自动生成文档",
+	"version": "1.4.1",
+	"publisher": "",
+	"engines": {
+		"eda": "^3.0.0"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "github",
+		"url": "https://github.com/easyeda/eext-docs-generator"
+	},
+	"categories": "Other",
+	"keywords": [
+		"Docs-Generator",
+		"PDF",
+		"Document",
+		"BOM"
+	],
+	"images": {
+		"logo": "./images/logo.png"
+	},
+	"homepage": "https://github.com/easyeda/eext-docs-generator",
+	"bugs": "https://github.com/easyeda/eext-docs-generator/issues",
+	"activationEvents": {},
+	"entry": "./dist/index",
+	"dependentExtensions": {},
+	"headerMenus": {
+		"home": [
+			{
+				"id": "prodoc-home-menu",
+				"title": "文档生成器",
+				"menuItems": [
+					{
+						"id": "prodoc-home-settings",
+						"title": "设置",
+						"registerFn": "openSettings"
+					}
+				]
+			}
+		],
+		"pcb": [
+			{
+				"id": "prodoc-pcb-menu",
+				"title": "文档生成器",
+				"menuItems": [
+					{
+						"id": "prodoc-pcb-report",
+						"title": "生成设计报告",
+						"registerFn": "generatePcbReport"
+					},
+					{
+						"id": "prodoc-pcb-settings",
+						"title": "设置",
+						"registerFn": "openSettings"
+					}
+				]
+			}
+		],
+		"sch": [
+			{
+				"id": "prodoc-sch-menu",
+				"title": "文档生成器",
+				"menuItems": [
+					{
+						"id": "prodoc-sch-generate",
+						"title": "生成项目文档",
+						"registerFn": "generateDoc"
+					},
+					{
+						"id": "prodoc-sch-procurement",
+						"title": "生成采购报告",
+						"registerFn": "generateProcurement"
+					},
+					{
+						"id": "prodoc-sch-settings",
+						"title": "设置",
+						"registerFn": "openSettings"
+					}
+				]
+			}
+		]
+	}
+}

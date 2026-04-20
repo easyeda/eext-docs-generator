@@ -1,0 +1,17 @@
+{
+	"Docs-Generator": "Docs-Generator",
+	"Docs-Generator - Document Generator": "Docs-Generator - 项目文档生成器",
+	"Please open a schematic page first": "请先打开一个原理图页面",
+	"No components found in schematic": "原理图中未找到器件",
+	"No valid components found": "未找到有效的器件（带位号）",
+	"Document generation failed": "文档生成失败，请查看控制台获取详情",
+	"Enter your MiniMax API Key": "请输入 MiniMax API Key",
+	"Current key: ": "当前密钥: ",
+	"API Key Configuration": "API Key 配置",
+	"API Key saved successfully": "API Key 保存成功",
+	"Select API endpoint": "选择 API 端点",
+	"Custom Endpoint": "自定义端点",
+	"API Endpoint": "API 端点",
+	"Enter custom API endpoint URL": "请输入自定义 API 端点 URL",
+	"Endpoint saved successfully": "端点保存成功"
+}

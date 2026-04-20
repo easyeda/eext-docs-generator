@@ -1,0 +1,17 @@
+{
+	"Docs-Generator": "Docs-Generator",
+	"Docs-Generator - Document Generator": "Docs-Generator - Document Generator",
+	"Please open a schematic page first": "Please open a schematic page first",
+	"No components found in schematic": "No components found in schematic",
+	"No valid components found": "No valid components with designators found",
+	"Document generation failed": "Document generation failed. Check console for details",
+	"Enter your MiniMax API Key": "Enter your MiniMax API Key",
+	"Current key: ": "Current key: ",
+	"API Key Configuration": "API Key Configuration",
+	"API Key saved successfully": "API Key saved successfully",
+	"Select API endpoint": "Select API endpoint",
+	"Custom Endpoint": "Custom Endpoint",
+	"API Endpoint": "API Endpoint",
+	"Enter custom API endpoint URL": "Enter custom API endpoint URL",
+	"Endpoint saved successfully": "Endpoint saved successfully"
+}
