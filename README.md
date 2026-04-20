@@ -14,7 +14,7 @@
 ![alt text](images/image1.png)  
 ✅ 支持生成文档实时编辑及HTML源码编辑  
 ![alt text](images/gif4.gif)  
-✅ 兼容主流API格式，支持Temperature自调节
+✅ 兼容主流API格式，支持Temperature自调节  
 ![alt text](images/image4.png)  
 
 ## 安装
