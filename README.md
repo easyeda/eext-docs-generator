@@ -27,5 +27,8 @@
 1.在"高级"-"扩展管理器"中导入eext-docs-generator.eext扩展文件。  
 ![alt text](images/image2.png)  
 
-2.进入原理图或PCB界面，点击顶部导航栏"高级"-"文档生成器"选择需要的功能即可。  
+2.在"配置"中开启"允许外部交互"选项。  
+![alt text](images/image.png)
+
+3.进入原理图或PCB界面，点击顶部导航栏"高级"-"文档生成器"选择需要的功能即可。  
 ![alt text](images/image3.png)  
