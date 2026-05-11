@@ -1,5 +1,7 @@
 # AI文档生成器
 
+[English](./README.en.md)
+
 嘉立创EDA / EasyEDA Pro 扩展插件，通过 AI 分析器件信息，自动生成文档并提供 PDF 下载。
 
 ## 支持功能

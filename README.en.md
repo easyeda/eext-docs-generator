@@ -1,6 +1,8 @@
 # AI Document Generator
 
-An extension for JLCEDA / EasyEDA Pro that uses AI to analyze component information, automatically generate documents, and provide PDF downloads.
+[中文](./README.md)
+
+An extension for EasyEDA / EasyEDA Pro that uses AI to analyze component information, automatically generate documents, and provide PDF downloads.
 
 ## Features
 
