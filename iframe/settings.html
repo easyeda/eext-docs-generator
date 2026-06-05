@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hans">
 <head>
-	<title>功能配置</title>
+	<title></title>
 	<meta charset="utf-8" />
 	<style>
 		* { margin: 0; padding: 0; box-sizing: border-box; }
@@ -27,32 +27,32 @@
 	</style>
 </head>
 <body>
-	<h2>Docs-Generator API 设置</h2>
+	<h2 id="pageTitle"></h2>
 
 	<div class="form-group">
-		<label>快速预设</label>
+		<label id="lblPresets"></label>
 		<div class="presets">
 			<button onclick="applyPreset('minimax')">MiniMax</button>
 			<button onclick="applyPreset('openai')">OpenAI</button>
 			<button onclick="applyPreset('deepseek')">DeepSeek</button>
 			<button onclick="applyPreset('anthropic')">Anthropic</button>
-			<button onclick="applyPreset('ollama')">Ollama (本地)</button>
+			<button id="btnOllama" onclick="applyPreset('ollama')"></button>
 		</div>
 	</div>
 
 	<div class="form-group">
-		<label>API 格式</label>
+		<label id="lblApiFormat"></label>
 		<select id="apiFormat">
-			<option value="openai">OpenAI 兼容</option>
-			<option value="anthropic">Anthropic 兼容</option>
+			<option value="openai" id="optOpenai"></option>
+			<option value="anthropic" id="optAnthropic"></option>
 		</select>
-		<div class="hint">OpenAI 格式适用于 MiniMax、OpenAI、DeepSeek、Ollama 等；Anthropic 格式适用于 Claude API</div>
+		<div class="hint" id="hintApiFormat"></div>
 	</div>
 
 	<div class="form-group">
 		<label>Base URL</label>
 		<input type="url" id="baseUrl" placeholder="https://api.minimaxi.com/v1" />
-		<div class="hint">OpenAI 格式填到 /v1，Anthropic 格式填到 /v1（如 https://api.anthropic.com/v1）</div>
+		<div class="hint" id="hintBaseUrl"></div>
 	</div>
 
 	<div class="form-group">
@@ -61,9 +61,9 @@
 	</div>
 
 	<div class="form-group">
-		<label>模型名称</label>
+		<label id="lblModelName"></label>
 		<input type="text" id="modelName" placeholder="MiniMax-M2.7" />
-		<div class="hint">例如: MiniMax-M2.7, gpt-4o, deepseek-chat, claude-sonnet-4-20250514, qwen-plus</div>
+		<div class="hint" id="hintModelName"></div>
 	</div>
 
 	<hr class="divider" />
@@ -71,25 +71,31 @@
 	<div class="form-group">
 		<label>Temperature</label>
 		<input type="number" id="temperature" min="0" max="2" step="0.1" value="1.0" />
-		<div class="hint">MiniMax 推荐 1.0，OpenAI/DeepSeek 推荐 0.7</div>
+		<div class="hint" id="hintTemperature"></div>
 	</div>
 
 	<div class="form-group">
 		<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
 			<input type="checkbox" id="retryUntilSuccess" style="width:auto;" />
-			<span style="font-size:13px;color:#cdd6f4;">过载时无限重试（429/529 错误自动重试直到成功）</span>
+			<span id="lblRetry" style="font-size:13px;color:#cdd6f4;"></span>
 		</label>
-		<div class="hint">开启后遇到服务端过载会每 5 秒自动重试，不会中断生成流程</div>
+		<div class="hint" id="hintRetry"></div>
 	</div>
 
 	<div class="btn-row">
-		<button class="btn btn-primary" onclick="saveConfig()">保存</button>
-		<button class="btn btn-secondary" onclick="testConnection()">测试连接</button>
+		<button class="btn btn-primary" id="btnSave" onclick="saveConfig()"></button>
+		<button class="btn btn-secondary" id="btnTest" onclick="testConnection()"></button>
 	</div>
-	<div class="saved-msg" id="savedMsg">✓ 设置已保存</div>
+	<div class="saved-msg" id="savedMsg"></div>
 	<div class="saved-msg" id="testMsg" style="color:#f9e2af;"></div>
 
 	<script>
+		var edaObj = (typeof eda !== 'undefined') ? eda : (window.parent && window.parent.eda);
+		function t(tag) {
+			if (edaObj && edaObj.sys_I18n) return edaObj.sys_I18n.text(tag);
+			return tag;
+		}
+
 		const PRESETS = {
 			minimax: { format: 'openai', baseUrl: 'https://api.minimaxi.com/v1', model: 'MiniMax-M2.7', temp: 1.0 },
 			openai: { format: 'openai', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o', temp: 0.7 },
@@ -97,6 +103,26 @@
 			anthropic: { format: 'anthropic', baseUrl: 'https://api.anthropic.com/v1', model: 'claude-sonnet-4-20250514', temp: 1.0 },
 			ollama: { format: 'openai', baseUrl: 'http://localhost:11434/v1', model: 'qwen2.5', temp: 0.7 }
 		};
+
+		function localizeUI() {
+			document.title = t('Settings');
+			document.getElementById('pageTitle').textContent = t('Docs-Generator API Settings');
+			document.getElementById('lblPresets').textContent = t('Quick Presets');
+			document.getElementById('btnOllama').textContent = t('Ollama (Local)');
+			document.getElementById('lblApiFormat').textContent = t('API Format');
+			document.getElementById('optOpenai').textContent = t('OpenAI Compatible');
+			document.getElementById('optAnthropic').textContent = t('Anthropic Compatible');
+			document.getElementById('hintApiFormat').textContent = t('API format hint');
+			document.getElementById('hintBaseUrl').textContent = t('Base URL hint');
+			document.getElementById('lblModelName').textContent = t('Model Name');
+			document.getElementById('hintModelName').textContent = t('Model name hint');
+			document.getElementById('hintTemperature').textContent = t('Temperature hint');
+			document.getElementById('lblRetry').textContent = t('Infinite retry on overload');
+			document.getElementById('hintRetry').textContent = t('Infinite retry hint');
+			document.getElementById('btnSave').textContent = t('Save');
+			document.getElementById('btnTest').textContent = t('Test Connection');
+			document.getElementById('savedMsg').textContent = t('Settings saved');
+		}
 
 		function applyPreset(name) {
 			const p = PRESETS[name];
@@ -140,7 +166,7 @@
 		async function testConnection() {
 			const testMsg = document.getElementById('testMsg');
 			testMsg.style.display = 'block';
-			testMsg.textContent = '正在测试...';
+			testMsg.textContent = t('Testing...');
 			testMsg.style.color = '#f9e2af';
 
 			const format = document.getElementById('apiFormat').value;
@@ -150,7 +176,7 @@
 			const temp = parseFloat(document.getElementById('temperature').value) || 1.0;
 
 			if (!baseUrl || !apiKey || !model) {
-				testMsg.textContent = '✗ 请填写完整配置';
+				testMsg.textContent = t('Please fill all fields');
 				testMsg.style.color = '#f38ba8';
 				return;
 			}
@@ -171,11 +197,11 @@
 					});
 				}
 				if (resp.ok) {
-					testMsg.textContent = '✓ 连接成功！';
+					testMsg.textContent = t('Connection successful');
 					testMsg.style.color = '#a6e3a1';
 				} else {
-					const t = await resp.text();
-					testMsg.textContent = '✗ HTTP ' + resp.status + ': ' + t.substring(0, 100);
+					const tt = await resp.text();
+					testMsg.textContent = '✗ HTTP ' + resp.status + ': ' + tt.substring(0, 100);
 					testMsg.style.color = '#f38ba8';
 				}
 			} catch (e) {
@@ -184,6 +210,7 @@
 			}
 		}
 
+		localizeUI();
 		loadConfig();
 	</script>
 </body>

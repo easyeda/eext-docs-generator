@@ -1,7 +1,7 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-Hans">
 <head>
-	<title>项目文档生成器</title>
+	<title></title>
 	<meta charset="utf-8" />
 	<style>
 		* { margin: 0; padding: 0; box-sizing: border-box; }
@@ -57,39 +57,56 @@
 </head>
 <body>
 	<div class="toolbar">
-		<button class="primary" id="btnAI" onclick="generateByTOC()">🤖 AI 按目录生成</button>
+		<button class="primary" id="btnAI" onclick="generateByTOC()"></button>
 		<div class="sep"></div>
-		<button id="btnPreview" class="active" onclick="switchMode('preview')">预览</button>
-		<button id="btnSource" onclick="switchMode('source')">源码</button>
+		<button id="btnPreview" class="active" onclick="switchMode('preview')"></button>
+		<button id="btnSource" onclick="switchMode('source')"></button>
 		<div class="sep"></div>
 		<button id="btnExportPdf" onclick="exportPdf()" disabled>PDF</button>
 		<button id="btnExportHtml" onclick="exportHtml()" disabled>HTML</button>
 		<div class="spacer"></div>
-		<span class="status" id="statusText">就绪</span>
+		<span class="status" id="statusText"></span>
 	</div>
 	<div class="content">
 		<div class="preview-panel" id="previewPanel">
-			<div id="contentArea"><div class="a4-page"><p style="color:#888;text-align:center;padding:80px 0;">加载中...</p></div></div>
+			<div id="contentArea"><div class="a4-page"><p style="color:#888;text-align:center;padding:80px 0;"></p></div></div>
 		</div>
 		<div class="md-panel hidden" id="mdPanel">
 			<textarea class="md-editor" id="mdEditor" spellcheck="false"></textarea>
 		</div>
 	</div>
-	<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div class="loading-text" id="loadingText">处理中...</div></div>
+	<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div class="loading-text" id="loadingText"></div></div>
 
 	<script>
+		var edaObj = (typeof eda !== 'undefined') ? eda : (window.parent && window.parent.eda);
+		function t(tag) {
+			if (edaObj && edaObj.sys_I18n) return edaObj.sys_I18n.text(tag);
+			return tag;
+		}
+
 		let docData = null, currentMode = 'preview';
+
+		function localizeUI() {
+			document.title = t('Project Document Generator');
+			document.getElementById('btnAI').textContent = t('AI Generate by TOC');
+			document.getElementById('btnPreview').textContent = t('Preview');
+			document.getElementById('btnSource').textContent = t('Source');
+			document.getElementById('statusText').textContent = t('Ready');
+			document.getElementById('loadingText').textContent = t('Processing...');
+			var loadingP = document.querySelector('#contentArea .a4-page p');
+			if (loadingP) loadingP.textContent = t('Loading...');
+		}
 
 		// Default TOC chapters for schematic document
 		function getDefaultTOC() {
 			var toc = [
-				{ title: '系统架构 (System Architecture)', type: 'ai', prompt: '分析系统框图和电源树。用表格展示系统框图（模块|位号|型号|功能|接口）和电源树（输入|稳压器|输出|负载|备注）。' }
+				{ title: t('System Architecture'), type: 'ai', prompt: '分析系统框图和电源树。用表格展示系统框图（模块|位号|型号|功能|接口）和电源树（输入|稳压器|输出|负载|备注）。' }
 			];
 			if (docData && docData.pages) {
 				for (var i = 0; i < docData.pages.length; i++) {
 					var p = docData.pages[i];
-					toc.push({ title: p.pageName + ' - 电路分析', type: 'ai-page', pageIdx: i, prompt: '分析该原理图页的电路功能、模块划分和核心器件。' });
-					toc.push({ title: p.pageName + ' - 器件清单', type: 'bom', pageIdx: i });
+					toc.push({ title: p.pageName + ' - ' + t('Circuit Analysis'), type: 'ai-page', pageIdx: i, prompt: '分析该原理图页的电路功能、模块划分和核心器件。' });
+					toc.push({ title: p.pageName + ' - ' + t('Component List'), type: 'bom', pageIdx: i });
 				}
 			}
 			return toc;
@@ -99,13 +116,13 @@
 			try {
 				var raw = eda.sys_Storage.getExtensionUserConfig('prodoc_data');
 				if (raw) { docData = JSON.parse(raw); renderTemplate(); }
-				else { document.getElementById('contentArea').innerHTML = '<div class="a4-page"><p style="color:#f38ba8;text-align:center;padding:80px 0;">未找到数据，请在原理图编辑器中运行「生成项目文档」。</p></div>'; }
+				else { document.getElementById('contentArea').innerHTML = '<div class="a4-page"><p style="color:#f38ba8;text-align:center;padding:80px 0;">' + t('No data found') + '</p></div>'; }
 			} catch(e) { console.error('[Docs-Generator]', e); }
 		}
 
 		function renderTemplate() {
 			if (!docData) return;
-			var projName = docData.projectName || '未命名工程';
+			var projName = docData.projectName || t('Untitled Project');
 			var boardLabel = docData.boardName || '';
 			var totalComps = docData.pages ? docData.pages.reduce(function(s,p){return s+p.components.length;},0) : 0;
 			var pn = 1, html = '';
@@ -114,20 +131,20 @@
 			var cv = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:247mm;text-align:center;">';
 			cv += '<h1 style="font-size:28px;border:none;margin-bottom:8px;">' + esc(projName) + '</h1>';
 			if (boardLabel) cv += '<p style="font-size:18px;color:#444;margin-bottom:12px;">' + esc(boardLabel) + '</p>';
-			cv += '<p style="font-size:16px;color:#555;">项目文档</p>';
-			cv += '<p class="meta-info" style="margin-top:24px;">原理图页数: '+(docData.pages?docData.pages.length:0)+' | 总器件数: '+totalComps+'</p>';
+			cv += '<p style="font-size:16px;color:#555;">' + t('Project Document') + '</p>';
+			cv += '<p class="meta-info" style="margin-top:24px;">' + t('Schematic cover stats', docData.pages?docData.pages.length:0, totalComps) + '</p>';
 			cv += '<p class="meta-info">'+new Date(docData.timestamp).toLocaleString()+'</p></div>';
 			html += pg(cv, pn++);
 
 			// Editable TOC page
-			var tocHtml = '<h2>目录 <small style="font-size:11px;color:#888;font-weight:normal;">(编辑后点击「AI 按目录生成」)</small></h2>';
+			var tocHtml = '<h2>' + t('Table of Contents') + ' <small style="font-size:11px;color:#888;font-weight:normal;">' + t('Edit TOC hint') + '</small></h2>';
 			tocHtml += '<ul class="toc-edit" id="tocEdit">';
 			var defaultToc = getDefaultTOC();
 			for (var i = 0; i < defaultToc.length; i++) {
 				tocHtml += tocLi(i, defaultToc[i]);
 			}
 			tocHtml += '</ul>';
-			tocHtml += '<span class="toc-add" onclick="addChapter()">+ 添加章节</span>';
+			tocHtml += '<span class="toc-add" onclick="addChapter()">' + t('+ Add Chapter') + '</span>';
 			html += pg(tocHtml, pn++);
 
 			// Schematic preview pages (images only, no AI yet)
@@ -136,7 +153,7 @@
 					var p = docData.pages[i];
 					var ph = '<h2>' + esc(p.pageName) + '</h2>';
 					if (p.imageBase64) ph += '<img class="sch-image" src="' + p.imageBase64 + '" alt="' + esc(p.pageName) + '" />';
-					ph += '<div id="page-content-' + i + '"><p class="placeholder">[AI 生成后填充]</p></div>';
+					ph += '<div id="page-content-' + i + '"><p class="placeholder">' + t('[Filled after AI generation]') + '</p></div>';
 					html += pg(ph, pn++);
 				}
 			}
@@ -144,7 +161,7 @@
 			document.getElementById('contentArea').innerHTML = html;
 			document.getElementById('btnExportPdf').disabled = false;
 			document.getElementById('btnExportHtml').disabled = false;
-			setStatus('编辑目录后点击「AI 按目录生成」');
+			setStatus(t('Edit TOC then click AI Generate'));
 		}
 
 		function tocLi(idx, item) {
@@ -159,7 +176,7 @@
 			if (!ul) return;
 			var idx = ul.children.length;
 			var li = document.createElement('div');
-			li.innerHTML = tocLi(idx, { title: '新章节', type: 'ai', prompt: '' });
+			li.innerHTML = tocLi(idx, { title: t('New Chapter'), type: 'ai', prompt: '' });
 			ul.appendChild(li.firstChild);
 			renumberTOC();
 		}
@@ -199,23 +216,23 @@
 		// ===== Generate by TOC =====
 		async function generateByTOC() {
 			var toc = readTOC();
-			if (!toc.length) { eda.sys_Dialog.showInformationMessage('目录为空','Docs-Generator'); return; }
+			if (!toc.length) { eda.sys_Dialog.showInformationMessage(t('TOC is empty'),'Docs-Generator'); return; }
 			var cfg = getApiConfig();
-			if (!cfg.apiKey) { eda.sys_Dialog.showInformationMessage('请先配置 API（菜单 > Docs-Generator > 设置）','Docs-Generator'); return; }
+			if (!cfg.apiKey) { eda.sys_Dialog.showInformationMessage(t('Please configure API first'),'Docs-Generator'); return; }
 
 			var confirmed = await new Promise(function(resolve) {
 				eda.sys_Dialog.showConfirmationMessage(
-					'AI 生成的内容可能存在虚构或不准确之处，请在使用前仔细核实。\n是否继续生成？',
-					'AI 免责提示',
-					'继续生成',
-					'取消',
+					t('AI disclaimer message'),
+					t('AI Disclaimer'),
+					t('Continue'),
+					t('Cancel'),
 					function(ok) { resolve(ok); }
 				);
 			});
 			if (!confirmed) return;
 
-			showLoading('生成中...'); document.getElementById('btnAI').disabled = true;
-			var projName = docData.projectName || '未命名工程';
+			showLoading(t('Generating...')); document.getElementById('btnAI').disabled = true;
+			var projName = docData.projectName || t('Untitled Project');
 			var boardLabel = docData.boardName || '';
 			var totalComps = docData.pages ? docData.pages.reduce(function(s,p){return s+p.components.length;},0) : 0;
 
@@ -223,7 +240,7 @@
 			var context = buildContext();
 
 			// Infer project purpose
-			setStatus('推断项目类型...');
+			setStatus(t('Overload retrying...'));
 			var projCtx = '';
 			try { projCtx = await callLLM(cfg, '项目名称: '+projName+'\n'+context.icSummary+'\n请用50-100字推断项目类型和功能。纯文本。'); } catch(e) { projCtx = projName; }
 
@@ -233,18 +250,18 @@
 			var cv = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:247mm;text-align:center;">';
 			cv += '<h1 style="font-size:28px;border:none;margin-bottom:8px;">'+esc(projName)+'</h1>';
 			if (boardLabel) cv += '<p style="font-size:18px;color:#444;margin-bottom:12px;">'+esc(boardLabel)+'</p>';
-			cv += '<p style="font-size:16px;color:#555;">项目文档</p>';
+			cv += '<p style="font-size:16px;color:#555;">' + t('Project Document') + '</p>';
 			cv += '<p class="meta-info" style="margin-top:24px;">'+new Date(docData.timestamp).toLocaleString()+'</p></div>';
 			html += pg(cv, pn++);
 
 			// TOC page (will be filled after generation)
-			html += pg('<h2>目录</h2><div id="tocFinal"></div>', pn++);
+			html += pg('<h2>' + t('Table of Contents') + '</h2><div id="tocFinal"></div>', pn++);
 
 			// Generate each chapter
 			var hasErr = false;
 			for (var ci = 0; ci < toc.length; ci++) {
 				var ch = toc[ci];
-				setStatus('生成 '+(ci+1)+'/'+toc.length+': '+ch.title);
+				setStatus(t('Generating chapter', ci+1, toc.length, ch.title));
 				document.getElementById('loadingText').textContent = ch.title;
 
 				var pageHtml = '<h2>'+esc(ch.title)+'</h2>';
@@ -260,14 +277,14 @@
 						var prompt = '【项目背景】'+projCtx+'\n\n请对原理图页「'+page.pageName+'」进行分析。\n'+ch.prompt+'\n\n'+context.pageContext(ch.pageIdx)+'\n\n用HTML标签输出（不要用代码块包裹）。用h3/p/ul/li/strong/table标签。简洁专业。';
 						var result = await callLLM(cfg, prompt);
 						if (result) pageHtml += result;
-					} catch(e) { pageHtml += '<div style="color:#c00;">生成失败: '+esc(String(e.message||e).substring(0,100))+'</div>'; hasErr = true; }
+					} catch(e) { pageHtml += '<div style="color:#c00;">' + t('Generation failed', String(e.message||e).substring(0,100)) + '</div>'; hasErr = true; }
 				} else {
 					// Generic AI chapter
 					try {
 						var prompt = '【项目背景】'+projCtx+'\n\n请生成章节「'+ch.title+'」的内容。\n'+(ch.prompt||'')+'\n\n'+context.fullSummary+'\n\n用HTML标签输出（不要用代码块包裹）。用h3/p/ul/li/strong/table标签。简洁专业。';
 						var result = await callLLM(cfg, prompt);
 						if (result) pageHtml += result;
-					} catch(e) { pageHtml += '<div style="color:#c00;">生成失败: '+esc(String(e.message||e).substring(0,100))+'</div>'; hasErr = true; }
+					} catch(e) { pageHtml += '<div style="color:#c00;">' + t('Generation failed', String(e.message||e).substring(0,100)) + '</div>'; hasErr = true; }
 				}
 
 				html += pg(pageHtml, pn++);
@@ -279,7 +296,7 @@
 			document.getElementById('btnExportPdf').disabled = false;
 			document.getElementById('btnExportHtml').disabled = false;
 			hideLoading(); document.getElementById('btnAI').disabled = false;
-			setStatus(hasErr ? '部分生成失败' : '生成完成');
+			setStatus(hasErr ? t('Partial generation failed') : t('Generation complete'));
 		}
 
 		function buildContext() {
@@ -330,9 +347,9 @@
 				if (pages[i].querySelector('#tocFinal') || pages[i].querySelector('#tocEdit')) continue;
 				var hs = pages[i].querySelectorAll('h2, h3');
 				for (var hi = 0; hi < hs.length; hi++) {
-					var t = hs[hi].textContent.trim(); if (!t) continue;
+					var tt = hs[hi].textContent.trim(); if (!tt) continue;
 					var cls = hs[hi].tagName === 'H2' ? 'toc-item toc-h2' : 'toc-item toc-h3';
-					h += '<div class="'+cls+'"><span class="toc-title">'+esc(t)+'</span><span class="toc-dots"></span><span class="toc-page">'+(i+1)+'</span></div>';
+					h += '<div class="'+cls+'"><span class="toc-title">'+esc(tt)+'</span><span class="toc-dots"></span><span class="toc-page">'+(i+1)+'</span></div>';
 				}
 			}
 			tc.innerHTML = h;
@@ -357,8 +374,8 @@
 		}
 
 		function bomTable(comps) {
-			if (!comps || !comps.length) return '<p class="placeholder">无器件</p>';
-			var h = '<table><thead><tr><th style="width:6%">序号</th><th style="width:10%">位号</th><th style="width:16%">名称/值</th><th style="width:12%">封装</th><th style="width:16%">器件型号</th><th style="width:14%">制造商</th><th style="width:10%">供应商编号</th></tr></thead><tbody>';
+			if (!comps || !comps.length) return '<p class="placeholder">' + t('No components') + '</p>';
+			var h = '<table><thead><tr><th style="width:6%">' + t('TH No.') + '</th><th style="width:10%">' + t('TH Designator') + '</th><th style="width:16%">' + t('TH Name/Value') + '</th><th style="width:12%">' + t('TH Footprint') + '</th><th style="width:16%">' + t('TH Part Number') + '</th><th style="width:14%">' + t('TH Manufacturer') + '</th><th style="width:10%">' + t('TH Supplier Part No.') + '</th></tr></thead><tbody>';
 			comps.forEach(function(c, i) {
 				var val = c.otherProperty && c.otherProperty['Value'] ? c.otherProperty['Value'] : '';
 				var fp = c.otherProperty && c.otherProperty['Supplier Footprint'] ? String(c.otherProperty['Supplier Footprint']) : '';
@@ -392,15 +409,15 @@
 			return {format:'openai',baseUrl:'',apiKey:'',model:'',temperature:1.0,retryUntilSuccess:false};
 		}
 		function isRetryable(e){var m=String(e.message||'');return m.indexOf('429')!==-1||m.indexOf('529')!==-1||m.indexOf('overloaded')!==-1||m.indexOf('503')!==-1||m.indexOf('502')!==-1;}
-		async function callLLM(cfg,prompt){var att=0;var max=cfg.retryUntilSuccess?999:2;while(true){att++;try{var r=cfg.format==='anthropic'?await fetchAnthropic(cfg,prompt):await fetchOpenAI(cfg,prompt);if(r)return r;}catch(e){if(isRetryable(e)&&att<max){setStatus('过载重试...');await sleep(Math.min(5+att*2,30)*1000);continue;}if(att<max){await sleep(2000);continue;}throw e;}}}
-		async function fetchOpenAI(cfg,prompt){var url=cfg.baseUrl.replace(/\/$/,'')+'/chat/completions';var body={model:cfg.model,messages:[{role:'system',content:'你是电子工程技术文档撰写专家，用中文回答。'},{role:'user',content:prompt}],temperature:cfg.temperature,stream:false};var resp=await eda.sys_ClientUrl.request(url,'POST',JSON.stringify(body),{headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey}});var t=await resp.text();if(!resp.ok)throw new Error('HTTP '+resp.status+': '+t.substring(0,200));var d=JSON.parse(t);if(d.choices&&d.choices[0]&&d.choices[0].message){var c=d.choices[0].message.content||'';c=c.replace(/<think>[\s\S]*?<\/think>/g,'');c=c.replace(/^```html\s*/i,'').replace(/\s*```$/i,'');return c.trim();}return null;}
-		async function fetchAnthropic(cfg,prompt){var url=cfg.baseUrl.replace(/\/$/,'')+'/messages';var body={model:cfg.model,max_tokens:4096,system:'你是电子工程技术文档撰写专家，用中文回答。',messages:[{role:'user',content:[{type:'text',text:prompt}]}],temperature:cfg.temperature,stream:false};var resp=await eda.sys_ClientUrl.request(url,'POST',JSON.stringify(body),{headers:{'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01'}});var t=await resp.text();if(!resp.ok)throw new Error('HTTP '+resp.status+': '+t.substring(0,200));var d=JSON.parse(t);if(d.content&&Array.isArray(d.content)){var c='';for(var b of d.content)if(b.type==='text')c+=b.text;c=c.replace(/^```html\s*/i,'').replace(/\s*```$/i,'');return c.trim();}return null;}
+		async function callLLM(cfg,prompt){var att=0;var max=cfg.retryUntilSuccess?999:2;while(true){att++;try{var r=cfg.format==='anthropic'?await fetchAnthropic(cfg,prompt):await fetchOpenAI(cfg,prompt);if(r)return r;}catch(e){if(isRetryable(e)&&att<max){setStatus(t('Overload retrying...'));await sleep(Math.min(5+att*2,30)*1000);continue;}if(att<max){await sleep(2000);continue;}throw e;}}}
+		async function fetchOpenAI(cfg,prompt){var url=cfg.baseUrl.replace(/\/$/,'')+'/chat/completions';var body={model:cfg.model,messages:[{role:'system',content:'你是电子工程技术文档撰写专家，用中文回答。'},{role:'user',content:prompt}],temperature:cfg.temperature,stream:false};var resp=await eda.sys_ClientUrl.request(url,'POST',JSON.stringify(body),{headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey}});var tt=await resp.text();if(!resp.ok)throw new Error('HTTP '+resp.status+': '+tt.substring(0,200));var d=JSON.parse(tt);if(d.choices&&d.choices[0]&&d.choices[0].message){var c=d.choices[0].message.content||'';c=c.replace(/<think>[\s\S]*?<\/think>/g,'');c=c.replace(/^```html\s*/i,'').replace(/\s*```$/i,'');return c.trim();}return null;}
+		async function fetchAnthropic(cfg,prompt){var url=cfg.baseUrl.replace(/\/$/,'')+'/messages';var body={model:cfg.model,max_tokens:4096,system:'你是电子工程技术文档撰写专家，用中文回答。',messages:[{role:'user',content:[{type:'text',text:prompt}]}],temperature:cfg.temperature,stream:false};var resp=await eda.sys_ClientUrl.request(url,'POST',JSON.stringify(body),{headers:{'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01'}});var tt=await resp.text();if(!resp.ok)throw new Error('HTTP '+resp.status+': '+tt.substring(0,200));var d=JSON.parse(tt);if(d.content&&Array.isArray(d.content)){var c='';for(var b of d.content)if(b.type==='text')c+=b.text;c=c.replace(/^```html\s*/i,'').replace(/\s*```$/i,'');return c.trim();}return null;}
 		function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 
 		// ===== Export =====
 		function exportPdf(){
 			if (eda.sys_Environment.isClient()) {
-				eda.sys_Dialog.showInformationMessage('客户端环境暂不支持直接导出 PDF。\n请先导出 HTML，然后在浏览器中打开 HTML 文件并使用浏览器的打印功能保存为 PDF。', 'Docs-Generator');
+				eda.sys_Dialog.showInformationMessage(t('Client PDF export not supported'), 'Docs-Generator');
 				return;
 			}
 			var ca=document.getElementById('contentArea');var pw=window.open('','_blank');
@@ -413,7 +430,7 @@
 			pw.document.write('.toc-item{display:flex;align-items:baseline;margin:6px 0;font-size:13px;}.toc-title{flex-shrink:0;}.toc-dots{flex:1;border-bottom:1px dotted #999;margin:0 6px;}.toc-page{flex-shrink:0;color:#666;}.toc-h2{font-weight:600;margin-top:10px;}.toc-h3{padding-left:20px;font-size:12px;color:#555;}');
 			pw.document.write('.toc-edit{display:none;}');
 			pw.document.write('</style></head><body>'+ca.innerHTML+'</body></html>');
-			pw.document.close();eda.sys_Dialog.showInformationMessage('已在新窗口打开打印预览，请在新窗口完成打印/保存 PDF 操作后返回。', 'Docs-Generator');setTimeout(function(){pw.print();},600);
+			pw.document.close();eda.sys_Dialog.showInformationMessage(t('Print preview opened'), 'Docs-Generator');setTimeout(function(){pw.print();},600);
 		}
 		function exportHtml(){
 			var ca=document.getElementById('contentArea');
@@ -429,10 +446,11 @@
 			eda.sys_FileSystem.saveFile(new Blob([h],{type:'text/html;charset=utf-8'}),'Docs-Generator_Export.html');
 		}
 
-		function showLoading(t){document.getElementById('loadingText').textContent=t;document.getElementById('loadingOverlay').classList.remove('hidden');}
+		function showLoading(text){document.getElementById('loadingText').textContent=text;document.getElementById('loadingOverlay').classList.remove('hidden');}
 		function hideLoading(){document.getElementById('loadingOverlay').classList.add('hidden');}
-		function setStatus(t){document.getElementById('statusText').textContent=t;}
+		function setStatus(text){document.getElementById('statusText').textContent=text;}
 
+		localizeUI();
 		init();
 	</script>
 </body>

@@ -4,5 +4,15 @@
 	"Docs-Generator": "Docs-Generator",
 	"生成项目文档": "Generate Document",
 	"配置 API Key": "Configure API Key",
-	"配置 API 端点": "Configure API Endpoint"
+	"配置 API 端点": "Configure API Endpoint",
+	"AI文档生成器": "AI Document Generator",
+	"通过 AI 分析原理图/PCB信息，并根据目录自动生成文档": "Generates project documents by analyzing schematic/PCB data with AI",
+	"文档生成器": "Document Generator",
+	"设置": "Settings",
+	"生成设计报告": "Generate Design Report",
+	"生成采购报告": "Generate Procurement Report",
+	"bom": "BOM",
+	"document": "Document",
+	"export": "Export",
+	"report": "Report"
 }
