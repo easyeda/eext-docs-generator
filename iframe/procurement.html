@@ -63,15 +63,15 @@
 </head>
 <body>
 	<div class="toolbar">
-		<button class="primary" id="btnAI" onclick="generateByTOC()"></button>
+		<button class="primary" id="btnAI" data-i18n="AI Generate by TOC" onclick="generateByTOC()"></button>
 		<div class="sep"></div>
-		<button id="btnPreview" class="active" onclick="switchMode('preview')"></button>
-		<button id="btnSource" onclick="switchMode('source')"></button>
+		<button id="btnPreview" class="active" data-i18n="Preview" onclick="switchMode('preview')"></button>
+		<button id="btnSource" data-i18n="Source" onclick="switchMode('source')"></button>
 		<div class="sep"></div>
 		<button id="btnExportPdf" onclick="exportPdf()" disabled>PDF</button>
 		<button id="btnExportHtml" onclick="exportHtml()" disabled>HTML</button>
 		<div class="spacer"></div>
-		<span class="status" id="statusText"></span>
+		<span class="status" id="statusText" data-i18n="Ready"></span>
 	</div>
 	<div class="content">
 		<div class="preview-panel" id="previewPanel">
@@ -92,12 +92,21 @@
 
 		var procData = null, bomRows = [], currentMode = 'preview';
 
-		function localizeUI() {
+		function applyI18n() {
+			var els = document.querySelectorAll('[data-i18n]');
+			for (var i = 0; i < els.length; i++) {
+				var key = els[i].getAttribute('data-i18n');
+				els[i].textContent = t(key);
+			}
+			var titleEls = document.querySelectorAll('[data-i18n-title]');
+			for (var i = 0; i < titleEls.length; i++) {
+				titleEls[i].title = t(titleEls[i].getAttribute('data-i18n-title'));
+			}
+			var phEls = document.querySelectorAll('[data-i18n-placeholder]');
+			for (var i = 0; i < phEls.length; i++) {
+				phEls[i].placeholder = t(phEls[i].getAttribute('data-i18n-placeholder'));
+			}
 			document.title = t('Procurement Report');
-			document.getElementById('btnAI').textContent = t('AI Generate by TOC');
-			document.getElementById('btnPreview').textContent = t('Preview');
-			document.getElementById('btnSource').textContent = t('Source');
-			document.getElementById('statusText').textContent = t('Ready');
 			document.getElementById('loadingText').textContent = t('Processing...');
 			var loadingP = document.querySelector('#contentArea .a4-page p');
 			if (loadingP) loadingP.textContent = t('Loading...');
@@ -474,7 +483,7 @@
 		function hideLoading(){document.getElementById('loadingOverlay').classList.add('hidden');}
 		function setStatus(text){document.getElementById('statusText').textContent=text;}
 
-		localizeUI();
+		applyI18n();
 		init();
 	</script>
 </body>

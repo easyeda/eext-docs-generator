@@ -27,32 +27,32 @@
 	</style>
 </head>
 <body>
-	<h2 id="pageTitle"></h2>
+	<h2 id="pageTitle" data-i18n="Docs-Generator API Settings"></h2>
 
 	<div class="form-group">
-		<label id="lblPresets"></label>
+		<label id="lblPresets" data-i18n="Quick Presets"></label>
 		<div class="presets">
 			<button onclick="applyPreset('minimax')">MiniMax</button>
 			<button onclick="applyPreset('openai')">OpenAI</button>
 			<button onclick="applyPreset('deepseek')">DeepSeek</button>
 			<button onclick="applyPreset('anthropic')">Anthropic</button>
-			<button id="btnOllama" onclick="applyPreset('ollama')"></button>
+			<button id="btnOllama" data-i18n="Ollama (Local)" onclick="applyPreset('ollama')"></button>
 		</div>
 	</div>
 
 	<div class="form-group">
-		<label id="lblApiFormat"></label>
+		<label id="lblApiFormat" data-i18n="API Format"></label>
 		<select id="apiFormat">
-			<option value="openai" id="optOpenai"></option>
-			<option value="anthropic" id="optAnthropic"></option>
+			<option value="openai" id="optOpenai" data-i18n="OpenAI Compatible"></option>
+			<option value="anthropic" id="optAnthropic" data-i18n="Anthropic Compatible"></option>
 		</select>
-		<div class="hint" id="hintApiFormat"></div>
+		<div class="hint" id="hintApiFormat" data-i18n="API format hint"></div>
 	</div>
 
 	<div class="form-group">
 		<label>Base URL</label>
 		<input type="url" id="baseUrl" placeholder="https://api.minimaxi.com/v1" />
-		<div class="hint" id="hintBaseUrl"></div>
+		<div class="hint" id="hintBaseUrl" data-i18n="Base URL hint"></div>
 	</div>
 
 	<div class="form-group">
@@ -61,9 +61,9 @@
 	</div>
 
 	<div class="form-group">
-		<label id="lblModelName"></label>
+		<label id="lblModelName" data-i18n="Model Name"></label>
 		<input type="text" id="modelName" placeholder="MiniMax-M2.7" />
-		<div class="hint" id="hintModelName"></div>
+		<div class="hint" id="hintModelName" data-i18n="Model name hint"></div>
 	</div>
 
 	<hr class="divider" />
@@ -71,22 +71,22 @@
 	<div class="form-group">
 		<label>Temperature</label>
 		<input type="number" id="temperature" min="0" max="2" step="0.1" value="1.0" />
-		<div class="hint" id="hintTemperature"></div>
+		<div class="hint" id="hintTemperature" data-i18n="Temperature hint"></div>
 	</div>
 
 	<div class="form-group">
 		<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
 			<input type="checkbox" id="retryUntilSuccess" style="width:auto;" />
-			<span id="lblRetry" style="font-size:13px;color:#cdd6f4;"></span>
+			<span id="lblRetry" data-i18n="Infinite retry on overload" style="font-size:13px;color:#cdd6f4;"></span>
 		</label>
-		<div class="hint" id="hintRetry"></div>
+		<div class="hint" id="hintRetry" data-i18n="Infinite retry hint"></div>
 	</div>
 
 	<div class="btn-row">
-		<button class="btn btn-primary" id="btnSave" onclick="saveConfig()"></button>
-		<button class="btn btn-secondary" id="btnTest" onclick="testConnection()"></button>
+		<button class="btn btn-primary" id="btnSave" data-i18n="Save" onclick="saveConfig()"></button>
+		<button class="btn btn-secondary" id="btnTest" data-i18n="Test Connection" onclick="testConnection()"></button>
 	</div>
-	<div class="saved-msg" id="savedMsg"></div>
+	<div class="saved-msg" id="savedMsg" data-i18n="Settings saved"></div>
 	<div class="saved-msg" id="testMsg" style="color:#f9e2af;"></div>
 
 	<script>
@@ -104,24 +104,21 @@
 			ollama: { format: 'openai', baseUrl: 'http://localhost:11434/v1', model: 'qwen2.5', temp: 0.7 }
 		};
 
-		function localizeUI() {
+		function applyI18n() {
+			var els = document.querySelectorAll('[data-i18n]');
+			for (var i = 0; i < els.length; i++) {
+				var key = els[i].getAttribute('data-i18n');
+				els[i].textContent = t(key);
+			}
+			var titleEls = document.querySelectorAll('[data-i18n-title]');
+			for (var i = 0; i < titleEls.length; i++) {
+				titleEls[i].title = t(titleEls[i].getAttribute('data-i18n-title'));
+			}
+			var phEls = document.querySelectorAll('[data-i18n-placeholder]');
+			for (var i = 0; i < phEls.length; i++) {
+				phEls[i].placeholder = t(phEls[i].getAttribute('data-i18n-placeholder'));
+			}
 			document.title = t('Settings');
-			document.getElementById('pageTitle').textContent = t('Docs-Generator API Settings');
-			document.getElementById('lblPresets').textContent = t('Quick Presets');
-			document.getElementById('btnOllama').textContent = t('Ollama (Local)');
-			document.getElementById('lblApiFormat').textContent = t('API Format');
-			document.getElementById('optOpenai').textContent = t('OpenAI Compatible');
-			document.getElementById('optAnthropic').textContent = t('Anthropic Compatible');
-			document.getElementById('hintApiFormat').textContent = t('API format hint');
-			document.getElementById('hintBaseUrl').textContent = t('Base URL hint');
-			document.getElementById('lblModelName').textContent = t('Model Name');
-			document.getElementById('hintModelName').textContent = t('Model name hint');
-			document.getElementById('hintTemperature').textContent = t('Temperature hint');
-			document.getElementById('lblRetry').textContent = t('Infinite retry on overload');
-			document.getElementById('hintRetry').textContent = t('Infinite retry hint');
-			document.getElementById('btnSave').textContent = t('Save');
-			document.getElementById('btnTest').textContent = t('Test Connection');
-			document.getElementById('savedMsg').textContent = t('Settings saved');
 		}
 
 		function applyPreset(name) {
@@ -210,7 +207,7 @@
 			}
 		}
 
-		localizeUI();
+		applyI18n();
 		loadConfig();
 	</script>
 </body>
