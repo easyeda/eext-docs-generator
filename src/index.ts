@@ -1,10 +1,9 @@
-﻿/**
+/**
  * Docs-Generator - 项目文档/采购报告/PCB报告 生成器
  */
 
 const PLUGIN_TAG = '[Docs-Generator]';
 
-// eslint-disable-next-line unused-imports/no-unused-vars
 export function activate(_status?: 'onStartupFinished', _arg?: string): void {}
 
 interface ComponentInfo {
@@ -42,7 +41,7 @@ export async function generateDoc(): Promise<void> {
 			if (projectInfo)
 				projectName = projectInfo.friendlyName || projectInfo.name || '';
 		}
-		catch (_) {}
+		catch {}
 
 		let boardName = '';
 		try {
@@ -50,7 +49,7 @@ export async function generateDoc(): Promise<void> {
 			if (boardInfo)
 				boardName = boardInfo.name || '';
 		}
-		catch (_) {}
+		catch {}
 
 		let allPages: Array<{ name: string; uuid: string }> = [];
 		try {
@@ -58,7 +57,7 @@ export async function generateDoc(): Promise<void> {
 			if (pages && pages.length > 0)
 				allPages = pages.map(p => ({ name: p.name, uuid: p.uuid }));
 		}
-		catch (_) {}
+		catch {}
 
 		if (allPages.length === 0) {
 			try {
@@ -66,7 +65,7 @@ export async function generateDoc(): Promise<void> {
 				if (currentPage)
 					allPages = [{ name: currentPage.name, uuid: currentPage.uuid }];
 			}
-			catch (_) {}
+			catch {}
 		}
 
 		if (allPages.length === 0) {
@@ -78,12 +77,19 @@ export async function generateDoc(): Promise<void> {
 		const pagesData: PageData[] = [];
 
 		for (const page of allPages) {
-			try { await eda.dmt_EditorControl.openDocument(page.uuid); await delay(500); }
-			catch (_) { continue; }
+			try {
+				await eda.dmt_EditorControl.openDocument(page.uuid);
+				await delay(500);
+			}
+			catch {
+				continue;
+			}
 
 			let components: any[] = [];
-			try { components = await eda.sch_PrimitiveComponent.getAll('part' as any, false); }
-			catch (_) {}
+			try {
+				components = await eda.sch_PrimitiveComponent.getAll('part' as any, false);
+			}
+			catch {}
 
 			const componentList: ComponentInfo[] = [];
 			if (components && components.length > 0) {
@@ -98,7 +104,8 @@ export async function generateDoc(): Promise<void> {
 					const footprint = fp ? fp.uuid : '';
 					const otherProperty = comp.getState_OtherProperty() || {};
 					const name = resolvePropertyRef(rawName, otherProperty);
-					if (!designator || designator.endsWith('?')) continue;
+					if (!designator || designator.endsWith('?'))
+						continue;
 					componentList.push({ designator, name, manufacturer, manufacturerId, supplier, supplierId, footprint, otherProperty });
 				}
 			}
@@ -108,14 +115,18 @@ export async function generateDoc(): Promise<void> {
 				await eda.dmt_EditorControl.zoomToAllPrimitives();
 				await delay(300);
 				const imageBlob = await eda.dmt_EditorControl.getCurrentRenderedAreaImage();
-				if (imageBlob) imageBase64 = await blobToBase64(imageBlob);
+				if (imageBlob)
+					imageBase64 = await blobToBase64(imageBlob);
 			}
-			catch (_) {}
+			catch {}
 
 			pagesData.push({ pageName: page.name, pageUuid: page.uuid, components: componentList, imageBase64 });
 		}
 
-		try { await eda.dmt_EditorControl.activateDocument(originalTabId); } catch (_) {}
+		try {
+			await eda.dmt_EditorControl.activateDocument(originalTabId);
+		}
+		catch {}
 
 		if (pagesData.length === 0 || pagesData.every(p => p.components.length === 0)) {
 			eda.sys_Dialog.showInformationMessage('未找到有效器件', 'Docs-Generator');
@@ -124,21 +135,29 @@ export async function generateDoc(): Promise<void> {
 
 		try {
 			await eda.sys_Storage.setExtensionUserConfig('prodoc_data', JSON.stringify({
-				projectName, boardName, pages: pagesData, timestamp: Date.now(),
+				projectName,
+				boardName,
+				pages: pagesData,
+				timestamp: Date.now(),
 			}));
 		}
 		catch (storageErr) {
 			console.error(PLUGIN_TAG, 'Storage failed:', storageErr);
 			try {
 				const existing = eda.sys_Storage.getExtensionAllUserConfigs() || {};
-				existing['prodoc_data'] = JSON.stringify({ projectName, boardName, pages: pagesData, timestamp: Date.now() });
+				existing.prodoc_data = JSON.stringify({ projectName, boardName, pages: pagesData, timestamp: Date.now() });
 				await eda.sys_Storage.setExtensionAllUserConfigs(existing);
 			}
-			catch (e2) { eda.sys_Dialog.showInformationMessage('数据存储失败', 'Docs-Generator'); return; }
+			catch {
+				eda.sys_Dialog.showInformationMessage('数据存储失败', 'Docs-Generator');
+				return;
+			}
 		}
 
 		await eda.sys_IFrame.openIFrame('/iframe/index.html', 900, 700, 'prodoc-main', {
-			title: 'Docs-Generator - 项目文档生成器', maximizeButton: true, minimizeButton: true,
+			title: eda.sys_I18n.text('Project Document Generator'),
+			maximizeButton: true,
+			minimizeButton: true,
 		});
 	}
 	catch (err) {
@@ -153,19 +172,39 @@ export async function generateDoc(): Promise<void> {
 export async function generateProcurement(): Promise<void> {
 	try {
 		const docInfo = await eda.dmt_SelectControl.getCurrentDocumentInfo();
-		if (!docInfo) { eda.sys_Dialog.showInformationMessage('请先打开一个原理图页面', 'Docs-Generator'); return; }
+		if (!docInfo) {
+			eda.sys_Dialog.showInformationMessage('请先打开一个原理图页面', 'Docs-Generator');
+			return;
+		}
 
 		let projectName = '';
-		try { const p = await eda.dmt_Project.getCurrentProjectInfo(); if (p) projectName = p.friendlyName || p.name || ''; } catch (_) {}
+		try {
+			const p = await eda.dmt_Project.getCurrentProjectInfo();
+			if (p)
+				projectName = p.friendlyName || p.name || '';
+		}
+		catch {}
 
 		let boardName = '';
-		try { const b = await eda.dmt_Board.getCurrentBoardInfo(); if (b) boardName = b.name || ''; } catch (_) {}
+		try {
+			const b = await eda.dmt_Board.getCurrentBoardInfo();
+			if (b)
+				boardName = b.name || '';
+		}
+		catch {}
 
 		let bomCsv = '';
-		try { const f = await eda.sch_ManufactureData.getBomFile('BOM_Export', 'csv'); if (f) bomCsv = await f.text(); }
+		try {
+			const f = await eda.sch_ManufactureData.getBomFile('BOM_Export', 'csv');
+			if (f)
+				bomCsv = await f.text();
+		}
 		catch (err) { console.error(PLUGIN_TAG, 'Failed to get BOM:', err); }
 
-		if (!bomCsv) { eda.sys_Dialog.showInformationMessage('无法获取 BOM 数据', 'Docs-Generator'); return; }
+		if (!bomCsv) {
+			eda.sys_Dialog.showInformationMessage('无法获取 BOM 数据', 'Docs-Generator');
+			return;
+		}
 
 		try {
 			await eda.sys_Storage.setExtensionUserConfig('prodoc_procurement', JSON.stringify({ projectName, boardName, bomCsv, timestamp: Date.now() }));
@@ -175,7 +214,7 @@ export async function generateProcurement(): Promise<void> {
 			// Fallback: try setExtensionAllUserConfigs
 			try {
 				const existing = eda.sys_Storage.getExtensionAllUserConfigs() || {};
-				existing['prodoc_procurement'] = JSON.stringify({ projectName, boardName, bomCsv, timestamp: Date.now() });
+				existing.prodoc_procurement = JSON.stringify({ projectName, boardName, bomCsv, timestamp: Date.now() });
 				await eda.sys_Storage.setExtensionAllUserConfigs(existing);
 			}
 			catch (e2) {
@@ -184,9 +223,12 @@ export async function generateProcurement(): Promise<void> {
 				return;
 			}
 		}
-		await eda.sys_IFrame.openIFrame('/iframe/procurement.html', 950, 700, 'prodoc-procurement', { title: '采购报告', maximizeButton: true, minimizeButton: true });
+		await eda.sys_IFrame.openIFrame('/iframe/procurement.html', 950, 700, 'prodoc-procurement', { title: eda.sys_I18n.text('Procurement Report'), maximizeButton: true, minimizeButton: true });
 	}
-	catch (err) { console.error(PLUGIN_TAG, 'Procurement failed:', err); eda.sys_Dialog.showInformationMessage('采购报告生成失败', 'Docs-Generator'); }
+	catch (err) {
+		console.error(PLUGIN_TAG, 'Procurement failed:', err);
+		eda.sys_Dialog.showInformationMessage('采购报告生成失败', 'Docs-Generator');
+	}
 }
 
 /**
@@ -195,35 +237,71 @@ export async function generateProcurement(): Promise<void> {
 export async function generatePcbReport(): Promise<void> {
 	try {
 		const docInfo = await eda.dmt_SelectControl.getCurrentDocumentInfo();
-		if (!docInfo) { eda.sys_Dialog.showInformationMessage('请先打开一个 PCB 页面', 'Docs-Generator'); return; }
+		if (!docInfo) {
+			eda.sys_Dialog.showInformationMessage('请先打开一个 PCB 页面', 'Docs-Generator');
+			return;
+		}
 
 		let projectName = '';
-		try { const p = await eda.dmt_Project.getCurrentProjectInfo(); if (p) projectName = p.friendlyName || p.name || ''; } catch (_) {}
+		try {
+			const p = await eda.dmt_Project.getCurrentProjectInfo();
+			if (p)
+				projectName = p.friendlyName || p.name || '';
+		}
+		catch {}
 
 		let boardName = '';
-		try { const b = await eda.dmt_Board.getCurrentBoardInfo(); if (b) boardName = b.name || ''; } catch (_) {}
+		try {
+			const b = await eda.dmt_Board.getCurrentBoardInfo();
+			if (b)
+				boardName = b.name || '';
+		}
+		catch {}
 
 		let layers: Array<{ name: string; type: string; visible: boolean }> = [];
 		try {
 			const allLayers = await eda.pcb_Layer.getAllLayers();
-			if (allLayers) layers = allLayers.map((l: any) => ({ name: l.name || '', type: l.type || '', visible: l.visible !== false }));
-		} catch (_) {}
+			if (allLayers)
+				layers = allLayers.map((l: any) => ({ name: l.name || '', type: l.type || '', visible: l.visible !== false }));
+		}
+		catch {}
 
 		let componentCount = 0;
-		try { const ids = await eda.pcb_PrimitiveComponent.getAllPrimitiveId(); componentCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitiveComponent.getAllPrimitiveId();
+			componentCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		let netNames: string[] = [];
-		try { netNames = await eda.pcb_Net.getAllNetsName(); } catch (_) {}
+		try {
+			netNames = await eda.pcb_Net.getAllNetsName();
+		}
+		catch {}
 
 		let drcPassed = true;
 		let drcErrors: any[] = [];
-		try { drcErrors = await eda.pcb_Drc.check(true, false, true); drcPassed = !drcErrors || drcErrors.length === 0; } catch (_) {}
+		try {
+			drcErrors = await eda.pcb_Drc.check(true, false, true);
+			drcPassed = !drcErrors || drcErrors.length === 0;
+		}
+		catch {}
 
 		let pickPlaceCsv = '';
-		try { const f = await eda.pcb_ManufactureData.getPickAndPlaceFile('PickPlace', 'csv'); if (f) pickPlaceCsv = await f.text(); } catch (_) {}
+		try {
+			const f = await eda.pcb_ManufactureData.getPickAndPlaceFile('PickPlace', 'csv');
+			if (f)
+				pickPlaceCsv = await f.text();
+		}
+		catch {}
 
 		let pcbInfoText = '';
-		try { const f = await eda.pcb_ManufactureData.getPcbInfoFile('PCBInfo'); if (f) pcbInfoText = await f.text(); } catch (_) {}
+		try {
+			const f = await eda.pcb_ManufactureData.getPcbInfoFile('PCBInfo');
+			if (f)
+				pcbInfoText = await f.text();
+		}
+		catch {}
 
 		// Get trace count per layer and total
 		let traceCount = 0;
@@ -238,73 +316,130 @@ export async function generatePcbReport(): Promise<void> {
 				}
 			}
 		}
-		catch (_) {}
+		catch {}
 
 		// Get via count and details
 		let viaCount = 0;
-		try { const ids = await eda.pcb_PrimitiveVia.getAllPrimitiveId(); viaCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitiveVia.getAllPrimitiveId();
+			viaCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		// Get arc count
 		let arcCount = 0;
-		try { const ids = await eda.pcb_PrimitiveArc.getAllPrimitiveId(); arcCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitiveArc.getAllPrimitiveId();
+			arcCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		// Get polyline count
 		let polylineCount = 0;
-		try { const ids = await eda.pcb_PrimitivePolyline.getAllPrimitiveId(); polylineCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitivePolyline.getAllPrimitiveId();
+			polylineCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		// Get pad count
 		let padCount = 0;
-		try { const ids = await eda.pcb_PrimitivePad.getAllPrimitiveId(); padCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitivePad.getAllPrimitiveId();
+			padCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		// Get fill count
 		let fillCount = 0;
-		try { const ids = await eda.pcb_PrimitiveFill.getAllPrimitiveId(); fillCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitiveFill.getAllPrimitiveId();
+			fillCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		// Get pour (copper zone) count
 		let pourCount = 0;
-		try { const ids = await eda.pcb_PrimitivePour.getAllPrimitiveId(); pourCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitivePour.getAllPrimitiveId();
+			pourCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		// Get region count
 		let regionCount = 0;
-		try { const ids = await eda.pcb_PrimitiveRegion.getAllPrimitiveId(); regionCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitiveRegion.getAllPrimitiveId();
+			regionCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		// Get dimension count
 		let dimensionCount = 0;
-		try { const ids = await eda.pcb_PrimitiveDimension.getAllPrimitiveId(); dimensionCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitiveDimension.getAllPrimitiveId();
+			dimensionCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		// Get string/text count
 		let stringCount = 0;
-		try { const ids = await eda.pcb_PrimitiveString.getAllPrimitiveId(); stringCount = ids ? ids.length : 0; } catch (_) {}
+		try {
+			const ids = await eda.pcb_PrimitiveString.getAllPrimitiveId();
+			stringCount = ids ? ids.length : 0;
+		}
+		catch {}
 
 		let designRuleName = '';
-		try { designRuleName = (await eda.pcb_Drc.getCurrentRuleConfigurationName()) || ''; } catch (_) {}
+		try {
+			designRuleName = (await eda.pcb_Drc.getCurrentRuleConfigurationName()) || '';
+		}
+		catch {}
 
 		// DRC: Differential pairs
 		let diffPairs: any[] = [];
 		try {
 			const dp = await eda.pcb_Drc.getAllDifferentialPairs();
-			if (Array.isArray(dp)) diffPairs = dp;
-			else if (dp && typeof dp === 'object') diffPairs = Object.values(dp);
+			if (Array.isArray(dp))
+				diffPairs = dp;
+			else if (dp && typeof dp === 'object')
+				diffPairs = Object.values(dp);
 		}
-		catch (_) {}
+		catch {}
 
 		// DRC: Equal length net groups
 		let equalLengthGroups: any[] = [];
-		try { const eg = await eda.pcb_Drc.getAllEqualLengthNetGroups(); if (eg) equalLengthGroups = eg; } catch (_) {}
+		try {
+			const eg = await eda.pcb_Drc.getAllEqualLengthNetGroups();
+			if (eg)
+				equalLengthGroups = eg;
+		}
+		catch {}
 
 		// DRC: Net classes
 		let netClasses: any[] = [];
-		try { const nc = await eda.pcb_Drc.getAllNetClasses(); if (nc) netClasses = nc; } catch (_) {}
+		try {
+			const nc = await eda.pcb_Drc.getAllNetClasses();
+			if (nc)
+				netClasses = nc;
+		}
+		catch {}
 
 		// DRC: Pad pair groups
 		let padPairGroups: any[] = [];
-		try { const pp = await eda.pcb_Drc.getAllPadPairGroups(); if (pp) padPairGroups = pp; } catch (_) {}
+		try {
+			const pp = await eda.pcb_Drc.getAllPadPairGroups();
+			if (pp)
+				padPairGroups = pp;
+		}
+		catch {}
 
 		// Get key net lengths (top 20 longest nets)
 		const netLengths: Array<{ name: string; length: number }> = [];
 		try {
 			for (const net of netNames.slice(0, 50)) {
-				if (!net || net === '') continue;
+				if (!net || net === '')
+					continue;
 				const len = await eda.pcb_Net.getNetLength(net);
 				if (len !== undefined && len > 0) {
 					netLengths.push({ name: net, length: len });
@@ -312,7 +447,7 @@ export async function generatePcbReport(): Promise<void> {
 			}
 			netLengths.sort((a, b) => b.length - a.length);
 		}
-		catch (_) {}
+		catch {}
 
 		// Get component placement data (positions, layers)
 		const compPlacements: Array<{ designator: string; name: string; x: number; y: number; layer: string; rotation: number }> = [];
@@ -321,7 +456,8 @@ export async function generatePcbReport(): Promise<void> {
 			if (allComps) {
 				for (const c of allComps) {
 					const des = c.getState_Designator() || '';
-					if (!des) continue;
+					if (!des)
+						continue;
 					compPlacements.push({
 						designator: des,
 						name: c.getState_Name() || '',
@@ -333,7 +469,7 @@ export async function generatePcbReport(): Promise<void> {
 				}
 			}
 		}
-		catch (_) {}
+		catch {}
 
 		// Get board bounding box
 		let boardBBox: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
@@ -341,53 +477,90 @@ export async function generatePcbReport(): Promise<void> {
 			const allCompIds = await eda.pcb_PrimitiveComponent.getAllPrimitiveId();
 			if (allCompIds && allCompIds.length > 0) {
 				const bbox = await eda.pcb_Primitive.getPrimitivesBBox(allCompIds);
-				if (bbox) boardBBox = bbox;
+				if (bbox)
+					boardBBox = bbox;
 			}
 		}
-		catch (_) {}
+		catch {}
 
 		// Collect which layers actually have content (from traces we already fetched)
 		const layersWithContent = new Set<string>();
 		// tracesPerLayer already has layer IDs with traces
-		for (const lk of Object.keys(tracesPerLayer)) { if (tracesPerLayer[lk] > 0) layersWithContent.add(lk); }
+		for (const lk of Object.keys(tracesPerLayer)) {
+			if (tracesPerLayer[lk] > 0)
+				layersWithContent.add(lk);
+		}
 
 		// Also check arcs, polylines, pours, fills on each layer
 		try {
 			const arcs = await eda.pcb_PrimitiveArc.getAll();
-			if (arcs) for (const a of arcs) { const ly = String(a.getState_Layer ? a.getState_Layer() : ''); if (ly) layersWithContent.add(ly); }
+			if (arcs) {
+				for (const a of arcs) {
+					const ly = String(a.getState_Layer ? a.getState_Layer() : '');
+					if (ly)
+						layersWithContent.add(ly);
+				}
+			}
 		}
-		catch (_) {}
+		catch {}
 		try {
 			const polys = await eda.pcb_PrimitivePolyline.getAll();
-			if (polys) for (const p of polys) { const ly = String(p.getState_Layer ? p.getState_Layer() : ''); if (ly) layersWithContent.add(ly); }
+			if (polys) {
+				for (const p of polys) {
+					const ly = String(p.getState_Layer ? p.getState_Layer() : '');
+					if (ly)
+						layersWithContent.add(ly);
+				}
+			}
 		}
-		catch (_) {}
+		catch {}
 		try {
 			const pours = await eda.pcb_PrimitivePour.getAll();
-			if (pours) for (const p of pours) { const ly = String(p.getState_Layer ? p.getState_Layer() : ''); if (ly) layersWithContent.add(ly); }
+			if (pours) {
+				for (const p of pours) {
+					const ly = String(p.getState_Layer ? p.getState_Layer() : '');
+					if (ly)
+						layersWithContent.add(ly);
+				}
+			}
 		}
-		catch (_) {}
+		catch {}
 		try {
 			const fills = await eda.pcb_PrimitiveFill.getAll();
-			if (fills) for (const f of fills) { const ly = String(f.getState_Layer ? f.getState_Layer() : ''); if (ly) layersWithContent.add(ly); }
+			if (fills) {
+				for (const f of fills) {
+					const ly = String(f.getState_Layer ? f.getState_Layer() : '');
+					if (ly)
+						layersWithContent.add(ly);
+				}
+			}
 		}
-		catch (_) {}
+		catch {}
 		try {
 			const regions = await eda.pcb_PrimitiveRegion.getAll();
-			if (regions) for (const r of regions) { const ly = String(r.getState_Layer ? r.getState_Layer() : ''); if (ly) layersWithContent.add(ly); }
+			if (regions) {
+				for (const r of regions) {
+					const ly = String(r.getState_Layer ? r.getState_Layer() : '');
+					if (ly)
+						layersWithContent.add(ly);
+				}
+			}
 		}
-		catch (_) {}
+		catch {}
 
 		// Filter layers: only include layers that actually have primitives on them
 		// Always include Top/Bottom copper + their silk/mask/paste, plus any layer with actual content
-		const usedLayers = layers.filter(l => {
+		const usedLayers = layers.filter((l) => {
 			const name = l.name.toLowerCase();
 			const layerId = String((l as any).id || l.name);
 			// Layer has actual primitives
-			if (layersWithContent.has(l.name) || layersWithContent.has(layerId)) return true;
+			if (layersWithContent.has(l.name) || layersWithContent.has(layerId))
+				return true;
 			// Always include Top/Bottom layer group (copper, silk, mask, paste)
-			if (name === 'toplayer' || name === 'bottomlayer' || name === 'top layer' || name === 'bottom layer') return true;
-			if (name.includes('top silk') || name.includes('bottom silk') || name.includes('top solder') || name.includes('bottom solder') || name.includes('top paste') || name.includes('bottom paste')) return true;
+			if (name === 'toplayer' || name === 'bottomlayer' || name === 'top layer' || name === 'bottom layer')
+				return true;
+			if (name.includes('top silk') || name.includes('bottom silk') || name.includes('top solder') || name.includes('bottom solder') || name.includes('top paste') || name.includes('bottom paste'))
+				return true;
 			// Exclude everything else (empty inner layers, unused custom layers)
 			return false;
 		});
@@ -397,20 +570,42 @@ export async function generatePcbReport(): Promise<void> {
 			await eda.pcb_Document.zoomToBoardOutline();
 			await delay(500);
 			const blob = await eda.dmt_EditorControl.getCurrentRenderedAreaImage();
-			if (blob) imageBase64 = await blobToBase64(blob);
-		} catch (_) {}
+			if (blob)
+				imageBase64 = await blobToBase64(blob);
+		}
+		catch {}
 
 		try {
 			await eda.sys_Storage.setExtensionUserConfig('prodoc_pcbreport', JSON.stringify({
-				projectName, boardName, layers: usedLayers, componentCount, netNames: netNames.slice(0, 100), drcPassed,
+				projectName,
+				boardName,
+				layers: usedLayers,
+				componentCount,
+				netNames: netNames.slice(0, 100),
+				drcPassed,
 				drcErrors: drcErrors.slice(0, 30),
-				pickPlaceCsv, pcbInfoText: (pcbInfoText || '').substring(0, 2000), imageBase64,
-				traceCount, tracesPerLayer, viaCount, arcCount, polylineCount, padCount,
-				fillCount, pourCount, regionCount, dimensionCount, stringCount,
+				pickPlaceCsv,
+				pcbInfoText: (pcbInfoText || '').substring(0, 2000),
+				imageBase64,
+				traceCount,
+				tracesPerLayer,
+				viaCount,
+				arcCount,
+				polylineCount,
+				padCount,
+				fillCount,
+				pourCount,
+				regionCount,
+				dimensionCount,
+				stringCount,
 				netLengths: netLengths.slice(0, 20),
 				compPlacements: compPlacements.slice(0, 100),
 				boardBBox,
-				designRuleName, diffPairs, equalLengthGroups, netClasses, padPairGroups,
+				designRuleName,
+				diffPairs,
+				equalLengthGroups,
+				netClasses,
+				padPairGroups,
 				timestamp: Date.now(),
 			}));
 		}
@@ -418,38 +613,69 @@ export async function generatePcbReport(): Promise<void> {
 			console.error(PLUGIN_TAG, 'Storage failed:', storageErr);
 			try {
 				const existing = eda.sys_Storage.getExtensionAllUserConfigs() || {};
-				existing['prodoc_pcbreport'] = JSON.stringify({
-					projectName, boardName, layers: usedLayers, componentCount, netNames: netNames.slice(0, 50), drcPassed,
+				existing.prodoc_pcbreport = JSON.stringify({
+					projectName,
+					boardName,
+					layers: usedLayers,
+					componentCount,
+					netNames: netNames.slice(0, 50),
+					drcPassed,
 					drcErrors: drcErrors.slice(0, 10),
-					pickPlaceCsv: '', pcbInfoText: '', imageBase64: '',
-					traceCount, tracesPerLayer, viaCount, arcCount, polylineCount, padCount,
-					fillCount, pourCount, regionCount, dimensionCount, stringCount,
+					pickPlaceCsv: '',
+					pcbInfoText: '',
+					imageBase64: '',
+					traceCount,
+					tracesPerLayer,
+					viaCount,
+					arcCount,
+					polylineCount,
+					padCount,
+					fillCount,
+					pourCount,
+					regionCount,
+					dimensionCount,
+					stringCount,
 					netLengths: netLengths.slice(0, 10),
 					compPlacements: compPlacements.slice(0, 30),
 					boardBBox,
-					designRuleName, diffPairs, equalLengthGroups, netClasses, padPairGroups,
+					designRuleName,
+					diffPairs,
+					equalLengthGroups,
+					netClasses,
+					padPairGroups,
 					timestamp: Date.now(),
 				});
 				await eda.sys_Storage.setExtensionAllUserConfigs(existing);
 			}
-			catch (e2) { eda.sys_Dialog.showInformationMessage('数据存储失败', 'Docs-Generator'); return; }
+			catch {
+				eda.sys_Dialog.showInformationMessage('数据存储失败', 'Docs-Generator');
+				return;
+			}
 		}
 
-		await eda.sys_IFrame.openIFrame('/iframe/pcbreport.html', 950, 700, 'prodoc-pcbreport', { title: 'PCB 设计报告', maximizeButton: true, minimizeButton: true });
+		await eda.sys_IFrame.openIFrame('/iframe/pcbreport.html', 950, 700, 'prodoc-pcbreport', { title: eda.sys_I18n.text('PCB Design Report'), maximizeButton: true, minimizeButton: true });
 	}
-	catch (err) { console.error(PLUGIN_TAG, 'PCB report failed:', err); eda.sys_Dialog.showInformationMessage('PCB 报告生成失败', 'Docs-Generator'); }
+	catch (err) {
+		console.error(PLUGIN_TAG, 'PCB report failed:', err);
+		eda.sys_Dialog.showInformationMessage('PCB 报告生成失败', 'Docs-Generator');
+	}
 }
 
 /**
  * 打开设置面板
  */
 export async function openSettings(): Promise<void> {
-	try { await eda.sys_IFrame.openIFrame('/iframe/settings.html', 480, 520, 'prodoc-settings', { title: 'Docs-Generator 设置' }); }
-	catch (err) { console.error(PLUGIN_TAG, 'Settings failed:', err); }
+	try {
+		await eda.sys_IFrame.openIFrame('/iframe/settings.html', 480, 520, 'prodoc-settings', { title: eda.sys_I18n.text('Settings') });
+	}
+	catch (err) {
+		console.error(PLUGIN_TAG, 'Settings failed:', err);
+	}
 }
 
 function resolvePropertyRef(raw: string, props: Record<string, string | number | boolean>): string {
-	if (!raw) return '';
+	if (!raw)
+		return '';
 	return raw.replace(/=\{([^}]+)\}/g, (_match, key: string) => {
 		const val = props[key];
 		return val !== undefined && val !== null ? String(val) : '';

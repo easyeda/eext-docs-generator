@@ -69,7 +69,7 @@
 		<button id="btnExportPdf" onclick="exportPdf()" disabled>PDF</button>
 		<button id="btnExportHtml" onclick="exportHtml()" disabled>HTML</button>
 		<div class="spacer"></div>
-		<span class="status" id="statusText" data-i18n="Ready"></span>
+		<span class="status" id="statusText" data-i18n="Ready">就绪</span>
 	</div>
 	<div class="content">
 		<div class="preview-panel" id="previewPanel">
@@ -83,8 +83,8 @@
 
 	<script>
 		var edaObj = (typeof eda !== 'undefined') ? eda : (window.parent && window.parent.eda);
-		function t(tag) {
-			if (edaObj && edaObj.sys_I18n) return edaObj.sys_I18n.text(tag);
+		function t(tag, ...args) {
+			if (edaObj && edaObj.sys_I18n) return edaObj.sys_I18n.text(tag, undefined, undefined, ...args);
 			return tag;
 		}
 
